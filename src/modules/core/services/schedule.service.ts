@@ -1,70 +1,71 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
-import { ScheduleEntity } from '@core/entities';
+import { Inject } from '@nestjs/common';
 import { CoreRepositoryEnum } from '@shared/enums';
+import { ScheduleEntity } from '@core/entities';
 
 @Injectable()
 export class ScheduleService {
   constructor(
     @Inject(CoreRepositoryEnum.SCHEDULE_REPOSITORY) private readonly repository: Repository<ScheduleEntity>,
-  ) {}
+  ) {
+  }
 
-  // Crear horario
+// Crear un horario
   async create(payload: any): Promise<ScheduleEntity> {
-    const entity = this.repository.create();
-    entity.userId = payload.userId;
-    entity.dayOfWeek = payload.dayOfWeek;
-    entity.startTime = payload.startTime;
-    entity.endTime = payload.endTime;
+    // Crear la instancia del horario y asignar los datos
+    const schedule = this.repository.create();
+    schedule.hourStartedAt = payload.hourStartedAt;
+    schedule.hourEndedAt = payload.hourEndedAt;
+    schedule.minuteStartedAt = payload.minuteStartedAt;
+    schedule.minuteEndedAt = payload.minuteEndedAt;
 
-    return await this.repository.save(entity);
+    // Guardar el horario en la base de datos
+    return await this.repository.save(schedule);
   }
 
   // Encontrar todos los horarios
   async findAll(): Promise<ScheduleEntity[]> {
-    return await this.repository.find({
-      relations: { user: true },
-    });
+    return await this.repository.find( );
   }
 
   // Encontrar un horario por ID
   async findOne(id: string): Promise<ScheduleEntity> {
-    const entity = await this.repository.findOne({
-      relations: { user: true },
+    const schedule = await this.repository.findOne({
       where: { id },
     });
 
-    if (!entity) {
+    if (!schedule) {
       throw new NotFoundException(`Horario no encontrado`);
     }
 
-    return entity;
+    return schedule;
   }
 
-  // Actualizar horario
+  // Actualizar un horario
   async update(id: string, payload: any): Promise<ScheduleEntity> {
-    const entity = await this.repository.findOneBy({ id });
+    const schedule = await this.repository.findOneBy({ id });
 
-    if (!entity) {
+    if (!schedule) {
       throw new NotFoundException(`Horario no encontrado`);
     }
 
-    entity.userId = payload.userId;
-    entity.dayOfWeek = payload.dayOfWeek;
-    entity.startTime = payload.startTime;
-    entity.endTime = payload.endTime;
+    schedule.hourStartedAt = payload.hourStartedAt;
+    schedule.hourEndedAt = payload.hourStartedAt;
+    schedule.minuteStartedAt = payload.minuteStartedAt;
+    schedule.minuteEndedAt = payload.minuteEndedAt;
 
-    return await this.repository.save(entity);
+    return await this.repository.save(schedule);
   }
 
-  // Eliminar horario (borrado lógico)
-  async delete (id: string): Promise<ScheduleEntity> {
-    const entity = await this.repository.findOneBy({ id });
+  // Eliminar un horario permanentemente
+  async delete(id: string): Promise<ScheduleEntity> {
+    const schedule = await this.repository.findOneBy({ id });
 
-    if (!entity) {
+    if (!schedule) {
       throw new NotFoundException(`Horario no encontrado`);
     }
 
-    return await this.repository.softRemove(entity);
+    return await this.repository.softRemove(schedule);
   }
 }

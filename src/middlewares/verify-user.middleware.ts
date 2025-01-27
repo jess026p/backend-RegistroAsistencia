@@ -1,4 +1,11 @@
-import { ForbiddenException, Inject, Injectable, NestMiddleware } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Inject,
+  Injectable,
+  NestMiddleware,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { PayloadTokenModel } from '@auth/models';
@@ -22,6 +29,10 @@ export class VerifyUserMiddleware implements NestMiddleware {
       const user = await this.userEntityRepository.findOneBy({
         id: jwtDecode.id,
       });
+
+      if (!user) {
+        throw new UnauthorizedException(`Usuario no valido`);
+      }
 
       if (user.suspendedAt) {
         throw new ForbiddenException({

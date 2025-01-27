@@ -6,10 +6,11 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  JoinColumn
+  JoinColumn,
 } from 'typeorm';
 import { UserEntity } from '@auth/entities';
 import { CatalogueEntity } from '@common/entities';
+import { ScheduleEntity } from './schedule.entity';
 
 @Entity('employeds', { schema: 'core' })
 export class EmployedEntity {
@@ -63,6 +64,18 @@ export class EmployedEntity {
   })
   positionId: string;
 
+  @ManyToOne(() => ScheduleEntity, { nullable: true })
+  @JoinColumn({ name: 'schedule_id' })
+  schedule: ScheduleEntity;
+
+  @Column({
+    type: 'uuid',
+    name: 'schedule_id',
+    nullable: true,
+    comment: 'Relación con CatalogueEntity (cargo del empleado)',
+  })
+  scheduleId: string;
+
   @Column({
     type: 'boolean',
     name: 'enabled',
@@ -70,5 +83,4 @@ export class EmployedEntity {
     default: true,
   })
   enabled: boolean;
-
 }

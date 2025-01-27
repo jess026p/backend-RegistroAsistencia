@@ -2,13 +2,10 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
-  JoinColumn,
 } from 'typeorm';
-import { UserEntity } from '@auth/entities';
 
 @Entity('schedules', { schema: 'core' })
 export class ScheduleEntity {
@@ -40,37 +37,37 @@ export class ScheduleEntity {
   })
   deletedAt: Date;
 
-  /** Foreign Keys **/
-  @ManyToOne(() => UserEntity)
-  @JoinColumn({ name: 'user_id' })
-  user: UserEntity;
-
-  @Column({
-    type: 'uuid',
-    name: 'user_id',
-    comment: 'Relación con UserEntity',
-  })
-  userId: string;
+  /** Relación con EmployedEntity **/
 
   /** Columns **/
   @Column({
-    name: 'day_of_week',
-    type: 'varchar',
-    comment: 'Día de la semana en el que aplica el horario (Lunes, Martes, etc.)',
-  })
-  dayOfWeek: string;
-
-  @Column({
-    name: 'start_time',
-    type: 'time',
+    name: 'hour_started_at',
+    type: 'integer',
     comment: 'Hora de inicio del turno o jornada',
   })
-  startTime: string;
+  hourStartedAt: number;
 
   @Column({
-    name: 'end_time',
-    type: 'time',
+    name: 'minute_started_at',
+    type: 'integer',
+    comment: 'Hora de inicio del turno o jornada',
+  })
+  minuteStartedAt: number;
+
+  @Column({
+    name: 'hour_ended_at',
+    type: 'integer',
     comment: 'Hora de finalización del turno o jornada',
   })
-  endTime: string;
+  hourEndedAt: number;
+
+
+  @Column({
+    name: 'minute_ended_at',
+    type: 'integer',
+    comment: 'Hora de finalización del turno o jornada',
+  })
+  minuteEndedAt: number;
+
+
 }

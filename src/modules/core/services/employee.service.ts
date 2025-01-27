@@ -37,14 +37,14 @@ export class EmployeeService {
   // Encontrar todas las asistencias
   async findAll(): Promise<EmployedEntity[]> {
     return await this.repository.find({
-      relations: { position: true, user: true },
+      relations: { position: true, user: true ,schedule:true},
     });
   }
 
   // Encontrar una asistencia por ID
   async findOne(userId: string): Promise<UserEntity> {
     const entity = await this.userRepository.findOne({
-      relations: { sex: true, employee: { position: true } },
+      relations: { sex: true, employee: { position: true ,schedule:true} },
       where: { id: userId },
     });
 
@@ -109,4 +109,16 @@ export class EmployeeService {
 
     return await this.repository.softRemove(entity);
   }
+
+  async assignSchedule(id: string, payload: any): Promise<EmployedEntity> {
+    const entity = await this.repository.findOneBy({ id });
+
+    if (!entity) {
+      throw new NotFoundException(`Registro no encontrado`);
+    }
+
+    entity.scheduleId = payload.id;
+    return await this.repository.save(entity);
+  }
+
 }

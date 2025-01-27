@@ -6,7 +6,8 @@ import { ScheduleService } from '../services/schedule.service';
 @ApiTags('Schedule')
 @Controller('schedules')
 export class ScheduleController {
-  constructor(private readonly scheduleService: ScheduleService) {}
+  constructor(private readonly scheduleService: ScheduleService) {
+  }
 
   @ApiOperation({ summary: 'Create Schedule' })
   @Post()

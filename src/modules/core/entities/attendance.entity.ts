@@ -8,8 +8,8 @@ import {
   DeleteDateColumn,
   JoinColumn
 } from 'typeorm';
-import { UserEntity } from '@auth/entities';
 import { CatalogueEntity } from '@common/entities';
+import { EmployedEntity } from './employee.entity';
 
 @Entity('attendances', { schema: 'core' })
 export class AttendanceEntity {
@@ -38,16 +38,16 @@ export class AttendanceEntity {
   deletedAt: Date;
 
   /** Foreign Keys **/
-  @ManyToOne(() => UserEntity)
-  @JoinColumn({ name: 'user_id' })
-  user: UserEntity;
+  @ManyToOne(() => EmployedEntity)
+  @JoinColumn({ name: 'employee_id' })
+  employee: EmployedEntity;
 
   @Column({
     type: 'uuid',
     name: 'user_id',
     comment: 'Relación con UserEntity',
   })
-  userId: string;
+  employeeId: string;
 
   @ManyToOne(() => CatalogueEntity)
   @JoinColumn({ name: 'type_id' })
@@ -59,11 +59,17 @@ export class AttendanceEntity {
     comment: 'Tipo de asistencia: entrada, salida a almuerzo, regreso de almuerzo, salida a casa',
   })
   typeId: string;
-  /** Columns **/
 
+  /** Columns **/
   @Column({
     name: 'registered_at',
     type: 'timestamp',
     comment: 'Fecha y hora de la asistencia' })
   registeredAt: Date;
+
+  @Column({
+    name: 'late',
+    type: 'boolean',
+    comment: 'Atrasado true, a tiempo false' })
+  late: boolean;
 }

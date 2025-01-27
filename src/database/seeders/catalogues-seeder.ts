@@ -8,7 +8,6 @@ import {
   CatalogueSchoolPeriodStateEnum,
   CatalogueEthnicOriginEnum,
   CatalogueTypeSchoolEnum,
-  CatalogueStudentLiveEnum,
   CatalogueEmployeesPositionsEnum,
 } from '@shared/enums';
 
@@ -79,6 +78,9 @@ export class CataloguesSeeder {
     await this.createTypeDiscriminationCatalogues();
     await this.createSocialGroupCatalogues();
     await this.createFamilyKinshipDisabilityCatalogues();
+    await this.createDaysOfWeekCatalogues();
+
+
 
   }
 
@@ -3639,4 +3641,55 @@ export class CataloguesSeeder {
       await this.catalogueService.create(catalogue);
     }
   }
+
+  private async createDaysOfWeekCatalogues(): Promise<void> {
+    const catalogues: CreateCatalogueDto[] = [
+      { code: 'monday',
+        description: 'Día de la semana',
+        name: 'Lunes',
+        sort: 1,
+        state: CatalogueStateEnum.ENABLED,
+        type: CatalogueTypeEnum.DAY_OF_WEEK },
+      { code: 'tuesday',
+        description: 'Día de la semana',
+        name: 'Martes',
+        sort: 2,
+        state: CatalogueStateEnum.ENABLED,
+        type: CatalogueTypeEnum.DAY_OF_WEEK },
+      { code: 'wednesday',
+        description: 'Día de la semana',
+        name: 'Miércoles', sort: 3,
+        state: CatalogueStateEnum.ENABLED,
+        type: CatalogueTypeEnum.DAY_OF_WEEK },
+      { code: 'thursday',
+        description: 'Día de la semana',
+        name: 'Jueves',
+        sort: 4,
+        state: CatalogueStateEnum.ENABLED,
+        type: CatalogueTypeEnum.DAY_OF_WEEK },
+      { code: 'friday',
+        description: 'Día de la semana',
+        name: 'Viernes',
+        sort: 5,
+        state: CatalogueStateEnum.ENABLED,
+        type: CatalogueTypeEnum.DAY_OF_WEEK },
+      { code: 'saturday',
+        description: 'Día de la semana',
+        name: 'Sábado',
+        sort: 6,
+        state: CatalogueStateEnum.ENABLED,
+        type: CatalogueTypeEnum.DAY_OF_WEEK },
+      { code: 'sunday',
+        description: 'Día de la semana',
+        name: 'Domingo',
+        sort: 7,
+        state: CatalogueStateEnum.ENABLED,
+        type: CatalogueTypeEnum.DAY_OF_WEEK },
+    ];
+
+    for (const catalogue of catalogues) {
+      await this.catalogueService.create(catalogue);
+    }
+  }
+
 }

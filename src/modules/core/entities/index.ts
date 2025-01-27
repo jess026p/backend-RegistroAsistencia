@@ -7,3 +7,4 @@ export * from './form.entity';
 export * from './vacation-detail.entity';
 export * from './permission-state.entity';
 export * from './signer.entity';
+export * from './employee.entity';

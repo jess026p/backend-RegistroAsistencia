@@ -13,7 +13,7 @@ export class AttendanceService {
   // Crear asistencia
   async create(payload: any): Promise<AttendanceEntity> {
     const entity = this.repository.create();
-    entity.userId = payload.user.id;
+    entity.employeeId = payload.employeeId;
     entity.typeId = payload.type.id;
     entity.registeredAt = payload.registeredAt;
 
@@ -23,14 +23,14 @@ export class AttendanceService {
   // Encontrar todas las asistencias
   async findAll(): Promise<AttendanceEntity[]> {
     return await this.repository.find({
-      relations: { type:true, user: true },
+      relations: { type:true, employee: true },
     });
   }
 
   // Encontrar una asistencia por ID
   async findOne(id: string): Promise<AttendanceEntity> {
     const entity = await this.repository.findOne({
-      relations: { user: true },
+      relations: { employee: true },
       where: { id },
     });
 
@@ -49,7 +49,7 @@ export class AttendanceService {
       throw new NotFoundException(`Registro no encontrado`);
     }
 
-    entity.userId = payload.user.id;
+    entity.employeeId = payload.employeeId;
     entity.typeId = payload.type.id;
     entity.registeredAt = payload.registeredAt;
 

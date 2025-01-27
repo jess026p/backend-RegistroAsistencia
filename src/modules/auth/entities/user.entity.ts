@@ -47,8 +47,8 @@ export class UserEntity {
   @ManyToMany(() => RoleEntity, role => role.users)
   roles: RoleEntity[];
 
-  @OneToMany(() => AttendanceEntity, attendance => attendance.user)
-  attendances: AttendanceEntity[];
+  @OneToMany(() => AttendanceEntity, attendance => attendance.employee)
+  attendances: EmployedEntity[];
 
   @OneToMany(() => PermissionEntity, permission => permission.user)
   permissions: PermissionEntity[];
