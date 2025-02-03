@@ -96,7 +96,8 @@ export class AuthService {
         username: payload.username
       },
       relations: {
-        roles: true
+        roles: true,
+        employee:true
       }
     });
 

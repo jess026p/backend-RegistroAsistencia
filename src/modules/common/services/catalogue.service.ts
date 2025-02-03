@@ -48,4 +48,9 @@ export class CatalogueService {
 
     return await this.repository.softRemove(entity);
   }
+  async findCataloguesByType(type: string): Promise<CatalogueEntity[]> {
+    const where = {type};
+    return await this.repository.find({ where, order: { sort: 'asc' } });
+  }
+
 }

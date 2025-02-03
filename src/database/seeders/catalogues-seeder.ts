@@ -79,9 +79,7 @@ export class CataloguesSeeder {
     await this.createSocialGroupCatalogues();
     await this.createFamilyKinshipDisabilityCatalogues();
     await this.createDaysOfWeekCatalogues();
-
-
-
+    await this.createAttendanceTypeCatalogues();
   }
 
   private async createAcademicPeriodCatalogues(): Promise<void> {
@@ -3691,5 +3689,47 @@ export class CataloguesSeeder {
       await this.catalogueService.create(catalogue);
     }
   }
+  private async createAttendanceTypeCatalogues(): Promise<void> {
+    const catalogues: CreateCatalogueDto[] = [
+      {
+        code: 'entry',
+        description: 'Tipo de asistencia',
+        name: 'Entrada',
+        sort: 1,
+        state: CatalogueStateEnum.ENABLED,
+        type: CatalogueTypeEnum.ATTENDANCE_TYPE,
+      },
+      {
+        code: 'lunch_exit',
+        description: 'Tipo de asistencia',
+        name: 'Salida a almuerzo',
+        sort: 2,
+        state: CatalogueStateEnum.ENABLED,
+        type: CatalogueTypeEnum.ATTENDANCE_TYPE,
+      },
+      {
+        code: 'lunch_return',
+        description: 'Tipo de asistencia',
+        name: 'Regreso de almuerzo',
+        sort: 3,
+        state: CatalogueStateEnum.ENABLED,
+        type: CatalogueTypeEnum.ATTENDANCE_TYPE,
+      },
+      {
+        code: 'exit',
+        description: 'Tipo de asistencia',
+        name: 'Salida a casa',
+        sort: 4,
+        state: CatalogueStateEnum.ENABLED,
+        type: CatalogueTypeEnum.ATTENDANCE_TYPE,
+      },
+    ];
+
+    for (const catalogue of catalogues) {
+      await this.catalogueService.create(catalogue);
+    }
+  }
+
+
 
 }

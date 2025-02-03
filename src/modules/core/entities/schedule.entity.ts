@@ -61,7 +61,6 @@ export class ScheduleEntity {
   })
   hourEndedAt: number;
 
-
   @Column({
     name: 'minute_ended_at',
     type: 'integer',
@@ -69,5 +68,11 @@ export class ScheduleEntity {
   })
   minuteEndedAt: number;
 
-
+  @Column({
+    name: 'minutes_lunch',
+    type: 'integer',
+    nullable: true,
+    comment: 'Minutos de almuerzo',
+  })
+  minutesLunch: number;
 }

@@ -1,4 +1,5 @@
-import { Body,
+import {
+  Body,
   Controller,
   Delete,
   Get,
@@ -7,22 +8,24 @@ import { Body,
   Param,
   ParseUUIDPipe,
   Post,
-  Put } from '@nestjs/common';
+  Put, Query,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ResponseHttpModel } from '@shared/models';
 import { AttendanceService } from '../services/attendance.service';
+import { PublicRoute } from '@auth/decorators';
 
 @ApiTags('Attendance')
 @Controller('attendances')
 export class AttendanceController {
-  constructor(private readonly attendanceService: AttendanceService) {}
+  constructor(private readonly attendanceService: AttendanceService) {
+  }
 
   @ApiOperation({ summary: 'Create Attendance' })
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() payload: any): Promise<ResponseHttpModel> {
     const serviceResponse = await this.attendanceService.create(payload);
-
     return {
       data: serviceResponse,
       message: 'Attendance created successfully',
@@ -81,4 +84,37 @@ export class AttendanceController {
       title: 'Deleted',
     };
   }
+
+
+  @ApiOperation({ summary: 'Find One Attendance' })
+  @Post(':employeeId/register')
+  @PublicRoute()
+  @HttpCode(HttpStatus.OK)
+  async register(@Param('employeeId', ParseUUIDPipe) employeeId: string,
+                 @Body() payload: any): Promise<ResponseHttpModel> {
+    const serviceResponse = await this.attendanceService.register(employeeId, payload);
+    return {
+      data: serviceResponse,
+      message: 'Attendance retrieved',
+      title: 'Success',
+    };
+  }
+
+
+  @ApiOperation({ summary: '' })
+  @PublicRoute()
+  @Get(':employeeId/current')
+  @HttpCode(HttpStatus.OK)
+  async findAttendancesByEmployee(@Param('employeeId', ParseUUIDPipe) employeeId: string,
+                                  @Query('startedAt') startedAt: Date,
+                                  @Query('endedAt') endedAt: Date,
+  ): Promise<ResponseHttpModel> {
+    const serviceResponse = await this.attendanceService.findAttendancesByEmployee(employeeId, startedAt, endedAt);
+    return {
+      data: serviceResponse,
+      message: 'Attendance retrieved',
+      title: 'Success',
+    };
+  }
+
 }

@@ -15,7 +15,6 @@ export class UsersSeeder {
 
   private async createUsers() {
     const roles = (await this.rolesService.findAll()).data;
-    console.log(roles);
 
     const users: CreateUserDto[] = [];
     users.push(
@@ -25,7 +24,7 @@ export class UsersSeeder {
         lastname: 'Admin',
         password: '1234',
         passwordChanged: true,
-        roles: roles,
+        roles: [roles[0]],
         username: 'admin',
         email: 'admin@admin.com',
         identificationType: null,

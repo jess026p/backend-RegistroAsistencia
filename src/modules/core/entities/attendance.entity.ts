@@ -44,18 +44,19 @@ export class AttendanceEntity {
 
   @Column({
     type: 'uuid',
-    name: 'user_id',
-    comment: 'Relación con UserEntity',
+    name: 'employee_id',
+    comment: 'Relación con EmployeeEntity',
   })
   employeeId: string;
 
-  @ManyToOne(() => CatalogueEntity)
+  @ManyToOne(() => CatalogueEntity, {nullable: true})
   @JoinColumn({ name: 'type_id' })
   type: CatalogueEntity;
 
   @Column({
     type: 'uuid',
     name: 'type_id',
+    nullable:true,
     comment: 'Tipo de asistencia: entrada, salida a almuerzo, regreso de almuerzo, salida a casa',
   })
   typeId: string;

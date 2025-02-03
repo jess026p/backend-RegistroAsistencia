@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import * as fs from 'fs';
 import { join } from 'path';
-import { RolesSeeder } from '@database/seeders';
+import { MenusSeeder, RolesSeeder } from '@database/seeders';
 import { UsersSeeder } from './users-seeder';
 import { CataloguesSeeder } from './catalogues-seeder';
 
 @Injectable()
 export class DatabaseSeeder {
   constructor(
+    private menusSeeder: MenusSeeder,
     private rolesSeeder: RolesSeeder,
     private usersSeeder: UsersSeeder,
     private cataloguesSeeder: CataloguesSeeder,
@@ -18,6 +19,7 @@ export class DatabaseSeeder {
     await this.rolesSeeder.run();
     await this.usersSeeder.run();
     await this.cataloguesSeeder.run();
+    await this.menusSeeder.run();
     this.createUploadsDirectories();
   }
 

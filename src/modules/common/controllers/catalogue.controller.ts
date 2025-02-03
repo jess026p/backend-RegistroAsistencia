@@ -87,4 +87,20 @@ export class CatalogueController {
       title: `Eliminado`,
     };
   }
+
+
+  @ApiOperation({ summary: 'Find One' })
+  @PublicRoute()
+  @Get('types/:type')
+  @HttpCode(HttpStatus.OK)
+  async findCataloguesByType(@Param('type') type: string): Promise<ResponseHttpModel> {
+    console.log('Type')
+    const serviceResponse = await this.catalogueService.findCataloguesByType(type);
+    return {
+      data: serviceResponse,
+      message: `Find One`,
+      title: `Success`,
+    };
+  }
+
 }

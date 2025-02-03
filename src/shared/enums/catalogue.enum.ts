@@ -79,6 +79,7 @@ export enum CatalogueTypeEnum {
   QUESTIONS_CATEGORY = 'QUESTIONS_CATEGORY',
   EMPLOYEES_POSITION = 'EMPLOYEES_POSITION',
   DAY_OF_WEEK = "DAY_OF_WEEK",
+  ATTENDANCE_TYPE = "ATTENDANCE_TYPE",
 }
 
 export enum CatalogueStateEnum {

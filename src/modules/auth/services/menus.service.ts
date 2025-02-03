@@ -1,7 +1,7 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { Repository, FindOptionsWhere, ILike, IsNull } from 'typeorm';
-import { MenuEntity, RoleEntity, UserEntity } from '@auth/entities';
+import { MenuEntity, RoleEntity } from '@auth/entities';
 import { PaginationDto } from '@core/dto';
 import { ServiceResponseHttpModel } from '@shared/models';
 import { AuthRepositoryEnum } from '@shared/enums';
@@ -15,7 +15,8 @@ export class MenusService {
     private repository: Repository<MenuEntity>,
     @Inject(AuthRepositoryEnum.ROLE_REPOSITORY)
     private roleRepository: Repository<RoleEntity>,
-  ) {}
+  ) {
+  }
 
   async create(payload: CreateMenuDto): Promise<ServiceResponseHttpModel> {
     const newMenu = this.repository.create(payload);
@@ -37,6 +38,7 @@ export class MenusService {
     const response = await this.repository.find({
       where: { parent: IsNull() },
       relations: { children: true, parent: true },
+      order: { order: 'desc' },
     });
 
     // response = response.filter((element) => element.parent === null);
@@ -50,6 +52,7 @@ export class MenusService {
     const role = await this.roleRepository.findOne({
       where: { id: roleId, menus: { parent: null } },
       relations: { menus: { parent: true, children: { children: true } } },
+      order: { menus: { order: 'asc' } },
     });
 
     return {
