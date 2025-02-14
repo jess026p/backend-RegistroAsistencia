@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { MenusService, RolesService } from '@auth/services';
 import { CreateMenuDto } from '@auth/dto';
 import { MenuTypeEnum, RoleEnum } from '@auth/enums';
-import { PrimeIcons } from '../../shared/enums/prime-icons.enum';
+import { PrimeIcons } from '@shared/enums';
 
 @Injectable()
 export class MenusSeeder {
