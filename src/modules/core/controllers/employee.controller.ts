@@ -67,7 +67,7 @@ export class EmployeeController {
 
     return {
       data: serviceResponse,
-      message: 'Attendance updated successfully',
+      message: 'Empleado Editado',
       title: 'Updated',
     };
   }
@@ -80,7 +80,7 @@ export class EmployeeController {
 
     return {
       data: serviceResponse,
-      message: 'Attendance updated successfully',
+      message: 'Empleado Deshabilitado',
       title: 'disable',
     };
   }
@@ -93,7 +93,7 @@ export class EmployeeController {
 
     return {
       data: serviceResponse,
-      message: 'Attendance updated successfully',
+      message: 'Empleado Habilitado',
       title: 'Enable',
     };
   }
@@ -107,7 +107,7 @@ export class EmployeeController {
 
     return {
       data: serviceResponse,
-      message: 'Attendance deleted successfully',
+      message: 'Empleado Eliminado',
       title: 'Deleted',
     };
   }
@@ -120,7 +120,7 @@ export class EmployeeController {
 
     return {
       data: serviceResponse,
-      message: 'Attendance updated successfully',
+      message: 'Horario Asignado',
       title: 'Updated',
     };
   }

@@ -17,7 +17,7 @@ export class ScheduleController {
 
     return {
       data: serviceResponse,
-      message: 'Schedule created successfully',
+      message: 'Horario Creado',
       title: 'Created',
     };
   }
@@ -56,7 +56,7 @@ export class ScheduleController {
 
     return {
       data: serviceResponse,
-      message: 'Schedule updated successfully',
+      message: 'Horario Modificado',
       title: 'Updated',
     };
   }
@@ -69,7 +69,7 @@ export class ScheduleController {
 
     return {
       data: serviceResponse,
-      message: 'Schedule deleted successfully',
+      message: 'Horario Eliminado',
       title: 'Deleted',
     };
   }

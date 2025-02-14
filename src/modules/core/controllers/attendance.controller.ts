@@ -28,7 +28,7 @@ export class AttendanceController {
     const serviceResponse = await this.attendanceService.create(payload);
     return {
       data: serviceResponse,
-      message: 'Attendance created successfully',
+      message: 'Asistencia Creada',
       title: 'Created',
     };
   }
@@ -67,7 +67,7 @@ export class AttendanceController {
 
     return {
       data: serviceResponse,
-      message: 'Attendance updated successfully',
+      message: 'Asistencia Modificada',
       title: 'Updated',
     };
   }
@@ -80,7 +80,7 @@ export class AttendanceController {
 
     return {
       data: serviceResponse,
-      message: 'Attendance deleted successfully',
+      message: 'Asistencia eliminada',
       title: 'Deleted',
     };
   }
