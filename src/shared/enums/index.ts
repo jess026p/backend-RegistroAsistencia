@@ -5,4 +5,3 @@ export * from './mail.enum';
 export * from './file.enum';
 export * from './message.enum';
 export * from './cache.enum';
-export * from './prime-icons.enum';

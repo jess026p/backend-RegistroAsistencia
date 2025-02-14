@@ -2,7 +2,6 @@ import { Injectable } from '@nestjs/common';
 import { MenusService, RolesService } from '@auth/services';
 import { CreateMenuDto } from '@auth/dto';
 import { MenuTypeEnum, RoleEnum } from '@auth/enums';
-import { PrimeIcons } from '@shared/enums';
 
 @Injectable()
 export class MenusSeeder {
@@ -20,7 +19,7 @@ export class MenusSeeder {
     menus.push(
       {
         code: 'manager_dashboard',
-        icon: PrimeIcons.ADDRESS_BOOK,
+        icon: 'pi pi-address-book',
         isVisible: true,
         label: 'Dashboard',
         routerLink: '/core/manager/dashboard',
@@ -29,7 +28,7 @@ export class MenusSeeder {
       },
       {
         code: 'employees',
-        icon: PrimeIcons.USERS,
+        icon: 'pi pi-users',
         isVisible: true,
         label: 'Lista de Empleados',
         routerLink: '/core/manager/employees/list',
@@ -38,7 +37,7 @@ export class MenusSeeder {
       },
       {
         code: 'attendances',
-        icon: PrimeIcons.LIST,
+        icon: 'pi pi-list',
         isVisible: true,
         label: 'Asistencias',
         routerLink: '/core/manager/attendances/list',
@@ -47,7 +46,7 @@ export class MenusSeeder {
       },
       {
         code: 'schedules',
-        icon: PrimeIcons.CALENDAR_CLOCK,
+        icon: 'pi pi-calendar-clock',
         isVisible: true,
         label: 'Horarios',
         routerLink: '/core/manager/schedules/list',
