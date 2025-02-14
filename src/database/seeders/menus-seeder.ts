@@ -20,7 +20,7 @@ export class MenusSeeder {
     menus.push(
       {
         code: 'manager_dashboard',
-        icon: PrimeIcons.GAUGE,
+        icon: PrimeIcons.ADDRESS_BOOK,
         isVisible: true,
         label: 'Dashboard',
         routerLink: '/core/manager/dashboard',
