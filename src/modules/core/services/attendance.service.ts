@@ -62,6 +62,7 @@ export class AttendanceService {
 
     if (!employee.schedule) {
       throw new NotFoundException('No tiene un horario Asignado');
+
     }
 
     const currentDate = new Date();

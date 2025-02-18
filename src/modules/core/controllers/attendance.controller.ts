@@ -13,7 +13,7 @@ import {
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ResponseHttpModel } from '@shared/models';
 import { AttendanceService } from '../services/attendance.service';
-import { PublicRoute } from '@auth/decorators';
+import { Auth, PublicRoute } from '@auth/decorators';
 
 @ApiTags('Attendance')
 @Controller('attendances')
@@ -85,10 +85,8 @@ export class AttendanceController {
     };
   }
 
-
   @ApiOperation({ summary: 'Find One Attendance' })
   @Post(':employeeId/register')
-  @PublicRoute()
   @HttpCode(HttpStatus.OK)
   async register(@Param('employeeId', ParseUUIDPipe) employeeId: string,
                  @Body() payload: any): Promise<ResponseHttpModel> {
@@ -100,9 +98,7 @@ export class AttendanceController {
     };
   }
 
-
   @ApiOperation({ summary: '' })
-  @PublicRoute()
   @Get(':employeeId/current')
   @HttpCode(HttpStatus.OK)
   async findAttendancesByEmployee(@Param('employeeId', ParseUUIDPipe) employeeId: string,
@@ -116,5 +112,4 @@ export class AttendanceController {
       title: 'Success',
     };
   }
-
 }

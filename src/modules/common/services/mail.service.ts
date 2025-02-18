@@ -1,6 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
-import { catchError } from 'rxjs';
 import { ConfigType } from '@nestjs/config';
 import { config } from '@config';
 import { environments } from '../../../environments';
@@ -14,10 +13,9 @@ export class MailService {
     private readonly mailerService: MailerService,
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
     private readonly folderPathsService: FolderPathsService,
-  ) {
-  }
+  ) {}
 
-  async sendMail(mailData: MailDataInterface) {
+  async sendMail(mailData: MailDataInterface): Promise<{ accepted: string[]; rejected: string[] }> {
     const mailAttachments = [];
 
     if (mailData?.attachments) {
@@ -30,7 +28,6 @@ export class MailService {
             filename: attachment.filename,
             contentDisposition: 'attachment',
           };
-
           mailAttachments.push(data);
         }
 
@@ -40,7 +37,6 @@ export class MailService {
             filename: attachment.filename,
             contentDisposition: 'attachment',
           };
-
           mailAttachments.push(data);
         }
       });
@@ -55,7 +51,6 @@ export class MailService {
           filename: mailData.attachment.filename,
           contentDisposition: 'attachment',
         };
-
         mailAttachments.push(data);
       }
 
@@ -93,13 +88,12 @@ export class MailService {
       attachments: mailAttachments,
     };
 
-    return await this.mailerService.sendMail(sendMailOptions).then(
-      response => {
-        return { accepted: response.accepted, rejected: response.rejected };
-      },
-      catchError(error => {
-        return error;
-      }),
-    );
+    try {
+      const response = await this.mailerService.sendMail(sendMailOptions);
+      return { accepted: response.accepted, rejected: response.rejected };
+    } catch (error) {
+      console.error("❌ Error enviando correo:", error);
+      throw new Error("No se pudo enviar el correo");
+    }
   }
 }

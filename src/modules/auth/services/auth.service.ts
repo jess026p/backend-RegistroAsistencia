@@ -23,6 +23,7 @@ import { config } from "@config";
 import { ConfigType } from "@nestjs/config";
 import { MailDataInterface } from "../../common/interfaces/mail-data.interface";
 import { UsersService } from "./users.service";
+import { PasswordChangeFirstDto } from '../dto/auth/password-change-first.dto';
 
 @Injectable()
 export class AuthService {
@@ -39,6 +40,7 @@ export class AuthService {
     private readonly nodemailerService: MailService
   ) {
   }
+
 
   async changePassword(id: string, payload: PasswordChangeDto): Promise<boolean> {
     const user = await this.repository.findOne({
@@ -75,9 +77,36 @@ export class AuthService {
 
     return true;
   }
+  async changePasswordFirst(id: string, payload: PasswordChangeFirstDto): Promise<boolean> {
+    const user = await this.repository.findOne({
+      select: {
+        id: true,
+        identification: true,
+        lastname: true,
+        name: true,
+        maxAttempts: true,
+        password: true,
+        suspendedAt: true,
+        username: true
+      },
+      where: { id }
+    });
+
+    if (!user) {
+      throw new NotFoundException("Usuario no encontrado para cambio de contraseña");
+    }
+
+    await this.repository.update(user.id, {
+      password: Bcrypt.hashSync(payload.passwordNew, 10),
+      passwordChanged: true,
+    });
+
+    return true;
+  }
+
 
   async login(payload: LoginDto): Promise<ServiceResponseHttpModel> {
-
+    console.log('📌 Iniciando sesión con:', payload);
     const user: UserEntity = await this.repository.findOne({
       select: {
         id: true,
@@ -90,7 +119,8 @@ export class AuthService {
         username: true,
         email: true,
         phone: true,
-        avatar: true
+        avatar: true,
+        passwordChanged: true,
       },
       where: {
         username: payload.username
@@ -100,8 +130,10 @@ export class AuthService {
         employee:true
       }
     });
+    console.log('🔹 Usuario encontrado:', user);
 
     if (!user) {
+      console.error('❌ Usuario no encontrado');
       throw new UnauthorizedException(`Usuario y/o contraseña no válidos`);
     }
 
@@ -193,9 +225,11 @@ export class AuthService {
   }
 
   async requestTransactionalCode(username: string): Promise<ServiceResponseHttpModel> {
+    console.log("Buscando usuario con username:", username);
     const user = await this.repository.findOne({
       where: { username }
     });
+    console.log("Usuario encontrado:", user);
 
     if (!user) {
       throw new NotFoundException({

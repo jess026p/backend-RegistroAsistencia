@@ -9,6 +9,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { join } from 'path';
 import { getFileName, imageFilter } from '@shared/helpers';
+import { PasswordChangeFirstDto } from '../dto/auth/password-change-first.dto';
 
 @Auth()
 @ApiTags('Auth')
@@ -35,6 +36,19 @@ export class AuthController {
   @HttpCode(HttpStatus.CREATED)
   async changePassword(@Param('id', ParseUUIDPipe) id: string, @Body() payload: PasswordChangeDto): Promise<ResponseHttpModel> {
     const serviceResponse = await this.authService.changePassword(id, payload);
+
+    return {
+      data: serviceResponse,
+      message: 'La contraseña fue cambiada',
+      title: 'Contraseña Actualizada',
+    };
+  }
+
+  @ApiOperation({ summary: 'Change Password' })
+  @Put(':id/change-password-first')
+  @HttpCode(HttpStatus.CREATED)
+  async changePasswordFirst(@Param('id', ParseUUIDPipe) id: string, @Body() payload: PasswordChangeFirstDto): Promise<ResponseHttpModel> {
+    const serviceResponse = await this.authService.changePasswordFirst(id, payload);
 
     return {
       data: serviceResponse,
@@ -109,6 +123,7 @@ export class AuthController {
     };
   }
 
+
   @PublicRoute()
   @Get('transactional-codes/:username/request')
   @HttpCode(HttpStatus.OK)
@@ -130,7 +145,7 @@ export class AuthController {
 
     return {
       data: null,
-      message: `Por favor ingrese su nueva contraseña`,
+      message: ``,
       title: 'Código Válido',
     };
   }

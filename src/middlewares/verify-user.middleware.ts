@@ -19,12 +19,18 @@ export class VerifyUserMiddleware implements NestMiddleware {
     @Inject(AuthRepositoryEnum.USER_REPOSITORY)
     private readonly userEntityRepository: Repository<UserEntity>,
     private readonly jwtService: JwtService,
-  ) {}
+  ) {
+  }
 
   async use(req: Request, res: Response, next: NextFunction) {
     if (req.headers.authorization) {
       const token = req.headers.authorization.split(' ');
+
       const jwtDecode = this.jwtService.decode(token[1]) as PayloadTokenModel;
+
+      if (!jwtDecode) {
+        throw new UnauthorizedException(`Token no válido`);
+      }
 
       const user = await this.userEntityRepository.findOneBy({
         id: jwtDecode.id,
