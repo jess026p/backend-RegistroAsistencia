@@ -1,28 +1,28 @@
-import { BadRequestException, Inject, Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
-import { JwtService } from "@nestjs/jwt";
-import * as Bcrypt from "bcrypt";
-import { plainToInstance } from "class-transformer";
-import { Repository } from "typeorm";
-import { add, isBefore } from "date-fns";
-import { UserEntity, TransactionalCodeEntity } from "@auth/entities";
-import { PayloadTokenModel } from "@auth/models";
-import { AuthRepositoryEnum, MailSubjectEnum, MailTemplateEnum } from "@shared/enums";
+import { BadRequestException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import * as Bcrypt from 'bcrypt';
+import { plainToInstance } from 'class-transformer';
+import { Repository } from 'typeorm';
+import { add, isBefore } from 'date-fns';
+import { UserEntity, TransactionalCodeEntity } from '@auth/entities';
+import { PayloadTokenModel } from '@auth/models';
+import { AuthRepositoryEnum, MailSubjectEnum, MailTemplateEnum } from '@shared/enums';
 import {
   LoginDto,
   PasswordChangeDto,
   ReadProfileDto,
   ReadUserInformationDto,
   UpdateProfileDto,
-  UpdateUserInformationDto
-} from "@auth/dto";
-import { ServiceResponseHttpModel } from "@shared/models";
-import { MailService } from "@common/services";
-import { join } from "path";
-import * as fs from "fs";
-import { config } from "@config";
-import { ConfigType } from "@nestjs/config";
-import { MailDataInterface } from "../../common/interfaces/mail-data.interface";
-import { UsersService } from "./users.service";
+  UpdateUserInformationDto,
+} from '@auth/dto';
+import { ServiceResponseHttpModel } from '@shared/models';
+import { MailService } from '@common/services';
+import { join } from 'path';
+import * as fs from 'fs';
+import { config } from '@config';
+import { ConfigType } from '@nestjs/config';
+import { MailDataInterface } from '../../common/interfaces/mail-data.interface';
+import { UsersService } from './users.service';
 import { PasswordChangeFirstDto } from '../dto/auth/password-change-first.dto';
 
 @Injectable()
@@ -37,7 +37,7 @@ export class AuthService {
     @Inject(config.KEY) private configService: ConfigType<typeof config>,
     private readonly userService: UsersService,
     private jwtService: JwtService,
-    private readonly nodemailerService: MailService
+    private readonly nodemailerService: MailService,
   ) {
   }
 
@@ -52,31 +52,32 @@ export class AuthService {
         maxAttempts: true,
         password: true,
         suspendedAt: true,
-        username: true
+        username: true,
       },
-      where: { id }
+      where: { id },
     });
 
     if (!user) {
-      throw new NotFoundException("Usuario no encontrado para cambio de contraseña");
+      throw new NotFoundException('Usuario no encontrado para cambio de contraseña');
     }
 
     const isMatchPassword = await this.checkPassword(payload.passwordOld, user, false);
 
     if (!isMatchPassword) {
-      throw new BadRequestException("La contraseña anterior no coincide.");
+      throw new BadRequestException('La contraseña anterior no coincide.');
     }
 
     if (payload.passwordConfirmation !== payload.passwordNew) {
-      throw new BadRequestException("Las contraseñas no coinciden.");
+      throw new BadRequestException('Las contraseñas no coinciden.');
     }
 
     await this.repository.update(user.id, {
-      password: Bcrypt.hashSync(payload.passwordNew, 10)
+      password: Bcrypt.hashSync(payload.passwordNew, 10),
     });
 
     return true;
   }
+
   async changePasswordFirst(id: string, payload: PasswordChangeFirstDto): Promise<boolean> {
     const user = await this.repository.findOne({
       select: {
@@ -87,13 +88,13 @@ export class AuthService {
         maxAttempts: true,
         password: true,
         suspendedAt: true,
-        username: true
+        username: true,
       },
-      where: { id }
+      where: { id },
     });
 
     if (!user) {
-      throw new NotFoundException("Usuario no encontrado para cambio de contraseña");
+      throw new NotFoundException('Usuario no encontrado para cambio de contraseña');
     }
 
     await this.repository.update(user.id, {
@@ -103,7 +104,6 @@ export class AuthService {
 
     return true;
   }
-
 
   async login(payload: LoginDto): Promise<ServiceResponseHttpModel> {
     console.log('📌 Iniciando sesión con:', payload);
@@ -123,12 +123,12 @@ export class AuthService {
         passwordChanged: true,
       },
       where: {
-        username: payload.username
+        username: payload.username,
       },
       relations: {
         roles: true,
-        employee:true
-      }
+        employee: true,
+      },
     });
     console.log('🔹 Usuario encontrado:', user);
 
@@ -139,11 +139,11 @@ export class AuthService {
 
     if (user?.suspendedAt)
       throw new UnauthorizedException({
-        error: "Cuenta Suspendida",
-        message: "Su usuario se encuentra suspendido"
+        error: 'Cuenta Suspendida',
+        message: 'Su usuario se encuentra suspendido',
       });
 
-    if (user?.maxAttempts === 0) throw new UnauthorizedException("Ha excedido el número máximo de intentos permitidos");
+    if (user?.maxAttempts === 0) throw new UnauthorizedException('Ha excedido el número máximo de intentos permitidos');
 
     if (!(await this.checkPassword(payload.password, user))) {
       throw new UnauthorizedException(`Usuario y/o contraseña no válidos, ${user.maxAttempts - 1} intentos restantes`);
@@ -158,8 +158,8 @@ export class AuthService {
     return {
       data: {
         accessToken: await this.generateJwt(user),
-        auth: userLogin
-      }
+        auth: userLogin,
+      },
     };
   }
 
@@ -172,12 +172,12 @@ export class AuthService {
         identificationType: true,
         gender: true,
         maritalStatus: true,
-        sex: true
-      }
+        sex: true,
+      },
     });
 
     if (!user) {
-      throw new NotFoundException("El perfil no existe");
+      throw new NotFoundException('El perfil no existe');
     }
 
     return plainToInstance(ReadProfileDto, user);
@@ -187,7 +187,7 @@ export class AuthService {
     const user = await this.repository.findOneBy({ id });
 
     if (!user) {
-      throw new NotFoundException("Información de usuario no existe");
+      throw new NotFoundException('Información de usuario no existe');
     }
 
     return plainToInstance(ReadUserInformationDto, user);
@@ -197,7 +197,7 @@ export class AuthService {
     const user = await this.userService.findOne(id);
 
     if (!user) {
-      throw new NotFoundException("Usuario no encontrado para actualizar información");
+      throw new NotFoundException('Usuario no encontrado para actualizar información');
     }
 
     this.repository.merge(user, payload);
@@ -210,7 +210,7 @@ export class AuthService {
     const user = await this.repository.findOneBy({ id });
 
     if (!user) {
-      throw new NotFoundException("Usuario no encontrado para actualizar el perfil");
+      throw new NotFoundException('Usuario no encontrado para actualizar el perfil');
     }
 
     const profileUpdated = await this.repository.update(id, payload);
@@ -225,18 +225,17 @@ export class AuthService {
   }
 
   async requestTransactionalCode(username: string): Promise<ServiceResponseHttpModel> {
-    console.log("Buscando usuario con username:", username);
     const user = await this.repository.findOne({
-      where: { username }
+      where: { username },
     });
-    console.log("Usuario encontrado:", user);
 
     if (!user) {
       throw new NotFoundException({
-        error: "Usuario no encontrado para generar código transaccional",
-        message: "Intente de nuevo"
+        error: 'Usuario no encontrado para generar código transaccional',
+        message: 'Intente de nuevo',
       });
     }
+
     const randomNumber = Math.random();
     const token = randomNumber.toString().substring(2, 8);
 
@@ -246,12 +245,14 @@ export class AuthService {
       template: MailTemplateEnum.TRANSACTIONAL_CODE,
       data: {
         token,
-        user
-      }
+        user,
+      },
     };
+
+    console.log(mailData);
     await this.nodemailerService.sendMail(mailData);
 
-    const payload = { username: user.username, token, type: "password_reset" };
+    const payload = { username: user.username, token, type: 'password_reset' };
 
     await this.transactionalCodeRepository.save(payload);
 
@@ -263,11 +264,11 @@ export class AuthService {
       c =>
         c.substr(0, chars) +
         c
-          .split("")
+          .split('')
           .slice(chars, -1)
-          .map(v => "*")
-          .join("") +
-        "@"
+          .map(v => '*')
+          .join('') +
+        '@',
     );
 
     return { data: email };
@@ -275,27 +276,27 @@ export class AuthService {
 
   async verifyTransactionalCode(token: string, username: string): Promise<ServiceResponseHttpModel> {
     const transactionalCode = await this.transactionalCodeRepository.findOne({
-      where: { token }
+      where: { token },
     });
 
     if (!transactionalCode) {
       throw new BadRequestException({
-        message: "Código Transaccional no válido",
-        error: "Error"
+        message: 'Código Transaccional no válido',
+        error: 'Error',
       });
     }
 
     if (transactionalCode.username !== username) {
       throw new BadRequestException({
-        message: "El usuario no corresponde al código transaccional generado",
-        error: "Error"
+        message: 'El usuario no corresponde al código transaccional generado',
+        error: 'Error',
       });
     }
 
     if (transactionalCode.isUsed) {
       throw new BadRequestException({
-        message: "El código ya fue usado",
-        error: "Error"
+        message: 'El código ya fue usado',
+        error: 'Error',
       });
     }
 
@@ -303,8 +304,8 @@ export class AuthService {
 
     if (isBefore(maxDate, new Date())) {
       throw new BadRequestException({
-        message: "El código ha expirado",
-        error: "Error"
+        message: 'El código ha expirado',
+        error: 'Error',
       });
     }
 
@@ -317,13 +318,13 @@ export class AuthService {
 
   async resetPassword(payload: any): Promise<ServiceResponseHttpModel> {
     const user = await this.repository.findOne({
-      where: { username: payload.username }
+      where: { username: payload.username },
     });
 
     if (!user) {
       throw new NotFoundException({
-        message: "Intente de nuevo",
-        error: "Usuario no encontrado para resetear contraseña"
+        message: 'Intente de nuevo',
+        error: 'Usuario no encontrado para resetear contraseña',
       });
     }
 
@@ -334,7 +335,7 @@ export class AuthService {
     await this.repository.update(user.id, {
       maxAttempts: this.MAX_ATTEMPTS,
       password: Bcrypt.hashSync(payload.passwordNew, 10),
-      passwordChanged: true
+      passwordChanged: true,
     });
 
     return { data: true };
@@ -345,9 +346,9 @@ export class AuthService {
 
     if (entity?.avatar) {
       try {
-        fs.unlinkSync(join(process.cwd(), "assets", entity.avatar));
+        fs.unlinkSync(join(process.cwd(), 'assets', entity.avatar));
       } catch (err) {
-        console.error("Something wrong happened removing the file", err);
+        console.error('Something wrong happened removing the file', err);
       }
     }
     entity.avatar = `avatars/${file.filename}`;
@@ -369,8 +370,8 @@ export class AuthService {
   private async findByUsername(username: string): Promise<UserEntity> {
     return (await this.repository.findOne({
       where: {
-        username
-      }
+        username,
+      },
     })) as UserEntity;
   }
 
@@ -385,7 +386,7 @@ export class AuthService {
 
     if (reduceAttempts) {
       await this.repository.update(userRest.id, {
-        maxAttempts: userRest.maxAttempts > 0 ? userRest.maxAttempts - 1 : 0
+        maxAttempts: userRest.maxAttempts > 0 ? userRest.maxAttempts - 1 : 0,
       });
     }
 
@@ -403,12 +404,12 @@ export class AuthService {
     });
 
     const mailData: MailDataInterface = {
-      to: "cesar.tamayo0204@gmail.com",
+      to: 'cesar.tamayo0204@gmail.com',
       subject: MailSubjectEnum.RESET_PASSWORD,
       template: MailTemplateEnum.TEST,
       data: {
-        token: "asd"
-      }
+        token: 'asd',
+      },
       // attachments: [{ filename: 'test.pdf', file: pdf }, { filename: 'test.pdf', path: 'test.pdf' }],
     };
 
