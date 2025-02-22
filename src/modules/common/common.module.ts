@@ -20,7 +20,7 @@ import { CatalogueService } from './services/catalogue.service';
         transport: {
           host: configService.mail.host,
           port: configService.mail.port,
-          secure: false,
+          secure: true,
           auth: {
             user: configService.mail.user,
             pass: configService.mail.pass,
