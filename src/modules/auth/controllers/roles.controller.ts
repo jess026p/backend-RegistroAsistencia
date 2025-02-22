@@ -8,7 +8,7 @@ import { RolesService } from '@auth/services';
 
 @ApiTags('Roles')
 @Controller('roles')
-export class RolesController {
+  export class RolesController {
   constructor(private rolesService: RolesService) {}
 
   @ApiOperation({ summary: 'Create One' })
