@@ -92,7 +92,7 @@ export class MailService {
       const response = await this.mailerService.sendMail(sendMailOptions);
       return { accepted: response.accepted, rejected: response.rejected };
     } catch (error) {
-      console.error("❌ Error enviando correo:", error);
+      console.error("Error enviando correo:", error);
       throw new Error("No se pudo enviar el correo");
     }
   }
