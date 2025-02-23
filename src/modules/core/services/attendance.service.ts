@@ -1,5 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
-import { Between, MoreThanOrEqual, Repository } from 'typeorm';
+import { Between, ILike, Like, Repository } from 'typeorm';
 import { AttendanceEntity, EmployedEntity } from '@core/entities';
 import { CommonRepositoryEnum, CoreRepositoryEnum } from '@shared/enums';
 import { differenceInMinutes, format } from 'date-fns';
@@ -31,6 +31,37 @@ export class AttendanceService {
     });
   }
 
+
+
+
+  async findAttendancesByEmployeeName(
+    employeeName: string,
+    startedAt = new Date(),
+    endedAt = new Date()
+  ) {
+    // Normalizamos las fechas para cubrir todo el día
+    startedAt = new Date(startedAt);
+    startedAt.setHours(0, 0, 0);
+
+    endedAt = new Date(endedAt);
+    endedAt.setHours(23, 59, 59);
+
+
+    return await this.repository.find({
+      relations: { type: true, employee: { user: true } },
+      where: [
+        {
+          registeredAt: Between(startedAt, endedAt),
+          employee: { user: { name: ILike(`%${employeeName}%`) } },
+        },
+        {
+          registeredAt: Between(startedAt, endedAt),
+          employee: { user: { lastname: ILike(`%${employeeName}%`) } },
+        },
+      ],
+    });
+  }
+
 //Listar registro Ionic front
   async findAttendancesByEmployee(employeeId: string, startedAt = new Date, endedAt = new Date) {
     startedAt = new Date(startedAt);
@@ -47,8 +78,11 @@ export class AttendanceService {
       relations: { type: true, employee: { user: true } },
       where: { employeeId, registeredAt: Between(startedAt, endedAt) },
     });
-
   }
+
+
+
+
 
   // Crear asistencia FRONT Ionic
   async register(employeeId: string, payload: any): Promise<AttendanceEntity> {

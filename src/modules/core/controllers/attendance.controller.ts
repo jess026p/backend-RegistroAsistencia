@@ -21,6 +21,24 @@ export class AttendanceController {
   constructor(private readonly attendanceService: AttendanceService) {
   }
 
+  @ApiOperation({ summary: 'Obtener asistencias por nombre de empleado' })
+  @Get('filters')
+  @HttpCode(HttpStatus.OK)
+  async findAttendancesByEmployeeName(
+    @Query('search') employeeName: string,
+    @Query('startedAt') startedAt: Date,
+    @Query('endedAt') endedAt: Date,
+  ): Promise<ResponseHttpModel> {
+    const serviceResponse = await this.attendanceService.findAttendancesByEmployeeName(employeeName, startedAt, endedAt);
+    return {
+      data: serviceResponse,
+      message: 'Attendance retrieved',
+      title: 'Success',
+    };
+  }
+
+
+
   @ApiOperation({ summary: 'Create Attendance' })
   @Post()
   @HttpCode(HttpStatus.CREATED)
@@ -112,4 +130,8 @@ export class AttendanceController {
       title: 'Success',
     };
   }
+
+
+
 }
+
