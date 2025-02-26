@@ -18,6 +18,7 @@ export class ReportsSql {
       ])
       .innerJoin(EmployeeEntity, 'employees', 'employees.id = attendances.employee_id')
       .innerJoin(UserEntity, 'users', 'users.id = employees.user_id')
+      .where('late = true')
       .getRawMany();
 
     //.where('evaluated_id = :evaluatedId and school_period_id = :schoolPeriodId and student_evaluations.total_score is not null',
