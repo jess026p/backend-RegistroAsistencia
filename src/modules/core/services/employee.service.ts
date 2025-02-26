@@ -1,21 +1,21 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { AuthRepositoryEnum, CoreRepositoryEnum } from '@shared/enums';
-import { EmployedEntity } from '../entities/employee.entity';
+import { EmployeeEntity } from '../entities/employee.entity';
 import { RoleEntity, UserEntity } from '@auth/entities';
 import { RoleEnum } from '@auth/enums';
 
 @Injectable()
 export class EmployeeService {
   constructor(
-    @Inject(CoreRepositoryEnum.EMPLOYEE_REPOSITORY) private readonly repository: Repository<EmployedEntity>,
+    @Inject(CoreRepositoryEnum.EMPLOYEE_REPOSITORY) private readonly repository: Repository<EmployeeEntity>,
     @Inject(AuthRepositoryEnum.USER_REPOSITORY) private readonly userRepository: Repository<UserEntity>,
     @Inject(AuthRepositoryEnum.ROLE_REPOSITORY) private readonly roleRepository: Repository<RoleEntity>,
   ) {
   }
 
   // Create
-  async create(payload: any): Promise<EmployedEntity> {
+  async create(payload: any): Promise<EmployeeEntity> {
     const roles = await this.roleRepository.find({
       where: { code: RoleEnum.EMPLOYEE },
     });
@@ -35,7 +35,7 @@ export class EmployeeService {
   }
 
   // Encontrar todas las asistencias
-  async findAll(): Promise<EmployedEntity[]> {
+  async findAll(): Promise<EmployeeEntity[]> {
     return await this.repository.find({
       relations: { position: true, user: true ,schedule:true},
     });
@@ -56,7 +56,7 @@ export class EmployeeService {
   }
 
   // Actualizar asistencia
-  async update(userId: string, payload: any): Promise<EmployedEntity> {
+  async update(userId: string, payload: any): Promise<EmployeeEntity> {
     const entity = await this.userRepository.findOneBy({ id: userId });
 
     if (!entity) {
@@ -73,7 +73,7 @@ export class EmployeeService {
   }
 
   // Desabilitar asistencia
-  async disable(id: string): Promise<EmployedEntity> {
+  async disable(id: string): Promise<EmployeeEntity> {
     const entity = await this.repository.findOneBy({ id });
 
     if (!entity) {
@@ -86,7 +86,7 @@ export class EmployeeService {
   }
 
   // Habilitar asistencia
-  async enable(id: string): Promise<EmployedEntity> {
+  async enable(id: string): Promise<EmployeeEntity> {
     const entity = await this.repository.findOneBy({ id });
 
     if (!entity) {
@@ -100,7 +100,7 @@ export class EmployeeService {
 
 
   // Eliminar asistencia (borrado lógico)
-  async delete(id: string): Promise<EmployedEntity> {
+  async delete(id: string): Promise<EmployeeEntity> {
     const entity = await this.repository.findOneBy({ id });
 
     if (!entity) {
@@ -110,7 +110,7 @@ export class EmployeeService {
     return await this.repository.softRemove(entity);
   }
 
-  async assignSchedule(id: string, payload: any): Promise<EmployedEntity> {
+  async assignSchedule(id: string, payload: any): Promise<EmployeeEntity> {
     const entity = await this.repository.findOneBy({ id });
 
     if (!entity) {

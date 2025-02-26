@@ -9,7 +9,7 @@ import {
   JoinColumn
 } from 'typeorm';
 import { CatalogueEntity } from '@common/entities';
-import { EmployedEntity } from './employee.entity';
+import { EmployeeEntity } from './employee.entity';
 
 @Entity('attendances', { schema: 'core' })
 export class AttendanceEntity {
@@ -38,9 +38,9 @@ export class AttendanceEntity {
   deletedAt: Date;
 
   /** Foreign Keys **/
-  @ManyToOne(() => EmployedEntity)
+  @ManyToOne(() => EmployeeEntity)
   @JoinColumn({ name: 'employee_id' })
-  employee: EmployedEntity;
+  employee: EmployeeEntity;
 
   @Column({
     type: 'uuid',

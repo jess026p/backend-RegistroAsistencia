@@ -37,7 +37,7 @@ export class ScheduleEntity {
   })
   deletedAt: Date;
 
-  /** Relación con EmployedEntity **/
+  /** Relación con EmployeeEntity **/
 
   /** Columns **/
   @Column({

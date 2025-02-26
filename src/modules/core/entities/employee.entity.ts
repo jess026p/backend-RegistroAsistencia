@@ -12,8 +12,8 @@ import { UserEntity } from '@auth/entities';
 import { CatalogueEntity } from '@common/entities';
 import { ScheduleEntity } from './schedule.entity';
 
-@Entity('employeds', { schema: 'core' })
-export class EmployedEntity {
+@Entity('employees', { schema: 'core' })
+export class EmployeeEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

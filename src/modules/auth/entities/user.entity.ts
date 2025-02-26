@@ -15,7 +15,7 @@ import * as Bcrypt from 'bcrypt';
 import { RoleEntity } from '@auth/entities';
 import { CatalogueEntity } from '@common/entities';
 import { AttendanceEntity, PermissionStateEntity, PermissionEntity, VacationEntity } from '@core/entities';
-import { EmployedEntity } from '../../core/entities/employee.entity';
+import { EmployeeEntity } from '../../core/entities/employee.entity';
 
 @Entity('users', { schema: 'auth' })
 export class UserEntity {
@@ -48,7 +48,7 @@ export class UserEntity {
   roles: RoleEntity[];
 
   @OneToMany(() => AttendanceEntity, attendance => attendance.employee)
-  attendances: EmployedEntity[];
+  attendances: EmployeeEntity[];
 
   @OneToMany(() => PermissionEntity, permission => permission.user)
   permissions: PermissionEntity[];
@@ -59,8 +59,8 @@ export class UserEntity {
   @OneToMany(() => VacationEntity, vacation => vacation.user)
   vacations: VacationEntity[];
 
-  @OneToOne(() => EmployedEntity, (employee) => employee.user)
-  employee: EmployedEntity;
+  @OneToOne(() => EmployeeEntity, (employee) => employee.user)
+  employee: EmployeeEntity;
 
 
   /** Foreign Keys **/

@@ -1,6 +1,6 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { Between, ILike, Like, Repository } from 'typeorm';
-import { AttendanceEntity, EmployedEntity } from '@core/entities';
+import { AttendanceEntity, EmployeeEntity } from '@core/entities';
 import { CommonRepositoryEnum, CoreRepositoryEnum } from '@shared/enums';
 import { differenceInMinutes, format } from 'date-fns';
 import { CatalogueEntity } from '@common/entities';
@@ -9,7 +9,7 @@ import { CatalogueEntity } from '@common/entities';
 export class AttendanceService {
   constructor(
     @Inject(CoreRepositoryEnum.ATTENDANCE_REPOSITORY) private readonly repository: Repository<AttendanceEntity>,
-    @Inject(CoreRepositoryEnum.EMPLOYEE_REPOSITORY) private readonly employeeRepository: Repository<EmployedEntity>,
+    @Inject(CoreRepositoryEnum.EMPLOYEE_REPOSITORY) private readonly employeeRepository: Repository<EmployeeEntity>,
     @Inject(CommonRepositoryEnum.CATALOGUE_REPOSITORY) private readonly catalogueRepository: Repository<CatalogueEntity>,
   ) {
   }
