@@ -13,6 +13,10 @@ import { MulterModule } from '@nestjs/platform-express';
 import { VerifyUserMiddleware } from '@middlewares';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ReportsModule } from "./modules/reports";
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { UserEntity } from '@auth/entities';
+import { AuthRepositoryEnum } from '@shared/enums';
+import { DatabaseModule } from '@database';
 
 @Module({
   imports: [
@@ -43,6 +47,7 @@ import { ReportsModule } from "./modules/reports";
     AuthModule,
     CoreModule,
     ReportsModule,
+    DatabaseModule,
   ],
   controllers: [AppController],
   providers: [AppService],
@@ -51,6 +56,12 @@ export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): any {
     consumer
       .apply(VerifyUserMiddleware)
+      .exclude(
+        { path: 'api/v1/auth/login', method: RequestMethod.POST },
+        { path: 'api/v1/auth/setup/admin', method: RequestMethod.POST },
+        { path: 'api/v1/roles', method: RequestMethod.GET },
+        { path: 'setup/admin', method: RequestMethod.POST }
+      )
       .forRoutes(
         { path: '*', method: RequestMethod.POST },
         { path: '*', method: RequestMethod.PUT },

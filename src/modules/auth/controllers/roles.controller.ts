@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { Auth } from '@auth/decorators';
+import { Auth, PublicRoute } from '@auth/decorators';
 import { CreateRoleDto, FilterRoleDto, UpdateRoleDto } from '@auth/dto';
 import { RoleEntity } from '@auth/entities';
 import { ResponseHttpModel } from '@shared/models';
@@ -8,7 +8,8 @@ import { RolesService } from '@auth/services';
 
 @ApiTags('Roles')
 @Controller('roles')
-  export class RolesController {
+@PublicRoute()
+export class RolesController {
   constructor(private rolesService: RolesService) {}
 
   @ApiOperation({ summary: 'Create One' })
@@ -25,21 +26,6 @@ import { RolesService } from '@auth/services';
     };
   }
 
-  @ApiOperation({ summary: 'Catalogue' })
-  @Get('catalogue')
-  @HttpCode(HttpStatus.OK)
-  async catalogue(): Promise<ResponseHttpModel> {
-    const serviceResponse = await this.rolesService.catalogue();
-
-    return {
-      data: serviceResponse.data,
-      pagination: serviceResponse.pagination,
-      message: `catalogue`,
-      title: `Catalogue`,
-    };
-  }
-
-  // @PublicRoute()
   @ApiOperation({ summary: 'Find All' })
   @Get()
   @HttpCode(HttpStatus.OK)

@@ -3,19 +3,38 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Auth, PublicRoute, User } from '@auth/decorators';
 import { AuthService } from '@auth/services';
 import { UserEntity } from '@auth/entities';
-import { LoginDto, PasswordChangeDto, UpdateProfileDto, UpdateUserInformationDto } from '@auth/dto';
+import { LoginDto, PasswordChangeDto, UpdateProfileDto, UpdateUserInformationDto, CreateUserDto } from '@auth/dto';
 import { ResponseHttpModel } from '@shared/models';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { join } from 'path';
 import { getFileName, imageFilter } from '@shared/helpers';
 import { PasswordChangeFirstDto } from '../dto/auth/password-change-first.dto';
+import { UsersService } from '../services/users.service';
 
 @Auth()
 @ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private usersService: UsersService,
+  ) {}
+
+  @ApiOperation({ summary: 'Create Admin User' })
+  @PublicRoute()
+  @Post('setup/admin')
+  @HttpCode(HttpStatus.CREATED)
+  async createAdminUser(@Body() payload: CreateUserDto): Promise<ResponseHttpModel> {
+    console.log('Creando usuario administrador', payload);
+    const serviceResponse = await this.usersService.create(payload);
+
+    return {
+      data: serviceResponse,
+      message: 'Usuario administrador creado correctamente',
+      title: 'Usuario Creado',
+    };
+  }
 
   @ApiOperation({ summary: 'Login' })
   @PublicRoute()

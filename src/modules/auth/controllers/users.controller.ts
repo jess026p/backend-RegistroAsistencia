@@ -3,7 +3,7 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CreateUserDto, FilterUserDto, UpdateUserDto } from '@auth/dto';
 import { UserEntity } from '@auth/entities';
 import { ResponseHttpModel } from '@shared/models';
-import { Auth } from '@auth/decorators';
+import { Auth, PublicRoute } from '@auth/decorators';
 import { RoleEnum } from '@auth/enums';
 import { UsersService } from '../services/users.service';
 
@@ -13,7 +13,7 @@ export class UsersController {
   constructor(private usersService: UsersService) {}
 
   @ApiOperation({ summary: 'Create One' })
-  @Auth()
+  @PublicRoute()
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(@Body() payload: CreateUserDto): Promise<ResponseHttpModel> {

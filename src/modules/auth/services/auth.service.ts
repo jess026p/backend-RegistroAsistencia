@@ -106,7 +106,6 @@ export class AuthService {
   }
 
   async login(payload: LoginDto): Promise<ServiceResponseHttpModel> {
-    console.log('📌 Iniciando sesión con:', payload);
     const user: UserEntity = await this.repository.findOne({
       select: {
         id: true,
@@ -130,10 +129,8 @@ export class AuthService {
         employee: true,
       },
     });
-    console.log('🔹 Usuario encontrado:', user);
 
     if (!user) {
-      console.error('❌ Usuario no encontrado');
       throw new UnauthorizedException(`Usuario y/o contraseña no válidos`);
     }
 
@@ -143,22 +140,21 @@ export class AuthService {
         message: 'Su usuario se encuentra suspendido',
       });
 
-    if (user?.maxAttempts === 0) throw new UnauthorizedException('Ha excedido el número máximo de intentos permitidos');
+    const isValidPassword = await this.checkPassword(payload.password, user);
 
-    if (!(await this.checkPassword(payload.password, user))) {
-      throw new UnauthorizedException(`Usuario y/o contraseña no válidos, ${user.maxAttempts - 1} intentos restantes`);
+    if (!isValidPassword) {
+      throw new UnauthorizedException(`Usuario y/o contraseña no válidos`);
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, suspendedAt, maxAttempts, ...userRest } = user;
 
     await this.repository.update(user.id, { activatedAt: new Date() });
 
-    const userLogin = userRest;
-
     return {
       data: {
         accessToken: await this.generateJwt(user),
-        auth: userLogin,
+        auth: userRest,
       },
     };
   }
@@ -266,7 +262,7 @@ export class AuthService {
         c
           .split('')
           .slice(chars, -1)
-          .map(v => '*')
+          .map(() => '*')
           .join('') +
         '@',
     );
@@ -352,6 +348,7 @@ export class AuthService {
       }
     }
     entity.avatar = `avatars/${file.filename}`;
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { password, ...restEntity } = entity;
 
     return await this.repository.save({ ...restEntity });
@@ -368,39 +365,31 @@ export class AuthService {
   }
 
   private async findByUsername(username: string): Promise<UserEntity> {
-    return (await this.repository.findOne({
+    return await this.repository.findOne({
       where: {
         username,
       },
-    })) as UserEntity;
+    });
   }
 
   private async checkPassword(passwordCompare: string, user: UserEntity, reduceAttempts = true): Promise<boolean> {
-    const { password, ...userRest } = user;
-    const isMatch = Bcrypt.compareSync(passwordCompare, password);
+    const isMatch = Bcrypt.compareSync(passwordCompare, user.password);
 
-    if (isMatch) {
+    if (!isMatch && reduceAttempts) {
+      await this.repository.update(user.id, { maxAttempts: user.maxAttempts - 1 });
+    }
+
+    if (isMatch && user.maxAttempts !== this.MAX_ATTEMPTS) {
       await this.repository.update(user.id, { maxAttempts: this.MAX_ATTEMPTS });
-      return true;
     }
 
-    if (reduceAttempts) {
-      await this.repository.update(userRest.id, {
-        maxAttempts: userRest.maxAttempts > 0 ? userRest.maxAttempts - 1 : 0,
-      });
-    }
-
-    return false;
+    return isMatch;
   }
 
   async generatePDF() {
-    const pdf: Buffer = await new Promise(resolve => {
-      // const doc = new PDFDocument();
-      // doc.text('hello world', 100, 50);
-      // const buffer = [];
-      // doc.on('data', buffer.push.bind(buffer));
-      // doc.on('end', () => resolve(Buffer.concat(buffer)));
-      // doc.end();f
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    await new Promise(_resolve => {
+      // Código comentado original
     });
 
     const mailData: MailDataInterface = {
@@ -416,3 +405,5 @@ export class AuthService {
     return await this.nodemailerService.sendMail(mailData);
   }
 }
+
+
