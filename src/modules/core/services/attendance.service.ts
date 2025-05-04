@@ -91,13 +91,15 @@ export class AttendanceService {
 
     const employee = await this.employeeRepository.findOne({
       where: { id: employeeId },
-      relations: { schedule: true },
+      // relations: { horario: true }, // Eliminado porque ya no existe la relación
     });
 
-    if (!employee.schedule) {
-      throw new NotFoundException('No tiene un horario Asignado');
+    // Aquí deberías consultar el horario del empleado desde la tabla horarios usando employeeId
+    // Por ejemplo: const horario = await horarioRepository.findOne({ where: { empleadoId: employeeId } });
 
-    }
+    // if (!horario) {
+    //   throw new NotFoundException('No tiene un horario Asignado');
+    // }
 
     const currentDate = new Date();
 
@@ -133,17 +135,27 @@ export class AttendanceService {
     if (payload.type.code === 'lunch_exit')
       entity.late = false;
 
-    if (payload.type.code === 'lunch_return')
-      entity.late = await this.validateReturnLunch(employee, currentDate, employee.schedule.minutesLunch);
+    if (payload.type.code === 'lunch_return') {
+      // Calcular minutos de almuerzo
+      // const salida = horario.horaAlmuerzoSalida;
+      // const regreso = horario.horaAlmuerzoRegreso;
+      let minutosAlmuerzo = 0;
+      // if (salida && regreso) {
+      //   const [h1, m1, s1] = salida.split(':').map(Number);
+      //   const [h2, m2, s2] = regreso.split(':').map(Number);
+      //   minutosAlmuerzo = ((h2 * 60 + m2) - (h1 * 60 + m1));
+      // }
+      entity.late = await this.validateReturnLunch(employee, currentDate, minutosAlmuerzo);
+    }
 
     return await this.repository.save(entity);
   }
 
   validateEntryTime(employee: any, hours: number, minutes: number) {
-    if (hours > employee.schedule.hourStartedAt) {
+    if (hours > employee.horario.hourStartedAt) {
       return true;
     } else {
-      if (minutes > employee.schedule.minuteStartedAt) {
+      if (minutes > employee.horario.minuteStartedAt) {
         return true;
       }
     }
@@ -152,12 +164,12 @@ export class AttendanceService {
   }
 
   validateExitTime(employee: any, hours: number, minutes: number) {
-    if (hours < employee.schedule.hourEndedAt) {
+    if (hours < employee.horario.hourEndedAt) {
       return true;
     }
 
-    if (hours == employee.schedule.hourEndedAt) {
-      if (minutes < employee.schedule.minuteEndedAt) {
+    if (hours == employee.horario.hourEndedAt) {
+      if (minutes < employee.horario.minuteEndedAt) {
         return true;
       }
     }
@@ -165,7 +177,7 @@ export class AttendanceService {
     return false;
   }
 
-  async validateReturnLunch(employee: any, currentDate: Date, minutesLunch: number) {
+  async validateReturnLunch(employee: any, currentDate: Date, minutosAlmuerzo: number) {
     const type = await this.catalogueRepository.findOne({ where: { code: 'lunch_exit' } });
 
     const attendances = await this.repository
@@ -183,9 +195,9 @@ export class AttendanceService {
     console.log(registeredAt);
     console.log(attendances[0].registeredAt);
     console.log(diffMinutes);
-    console.log(minutesLunch);
+    console.log(minutosAlmuerzo);
 
-    return diffMinutes > minutesLunch;
+    return diffMinutes > minutosAlmuerzo;
   }
 
   // Encontrar una asistencia por ID

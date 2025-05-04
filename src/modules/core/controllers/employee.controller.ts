@@ -112,16 +112,16 @@ export class EmployeeController {
     };
   }
 
-  @ApiOperation({ summary: 'Update Attendance' })
-  @Patch(':id/assign-schedules')
+  @ApiOperation({ summary: 'Asignar Horario' })
+  @Patch(':id/assign-horario')
   @HttpCode(HttpStatus.CREATED)
   async assignSchedule(@Param('id', ParseUUIDPipe) id: string, @Body() payload: any): Promise<ResponseHttpModel> {
     const serviceResponse = await this.employeeService.assignSchedule(id, payload);
 
     return {
       data: serviceResponse,
-      message: 'Horario Asignado',
-      title: 'Updated',
+      message: 'Horario asignado correctamente',
+      title: 'Horario Asignado',
     };
   }
 }

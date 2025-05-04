@@ -17,10 +17,10 @@ export const databaseProviders = [
         password,
         database,
         entities: [__dirname + '/../**/*.entity{.ts,.js}'],
-        migrations: ['src/database/migrations/*.ts'],
-        migrationsTableName: 'migrations',
+       // migrations: ['src/database/migrations/*.ts'],
+       // migrationsTableName: 'migrations',
         // dropSchema: true,
-        synchronize: true,
+        synchronize: false,
       });
       return dataSource.initialize();
     },

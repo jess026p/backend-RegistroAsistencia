@@ -45,7 +45,7 @@ export class UsersService {
   }
 
   async findAll(params?: FilterUserDto): Promise<ServiceResponseHttpModel> {
-    const relations = { roles: true };
+    const relations = { roles: true, horarios: true };
     //Pagination & Filter by Search
     if (params?.limit > 0 && params?.page >= 0) {
       return await this.paginateAndFilter(params, relations);

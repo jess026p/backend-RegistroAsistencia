@@ -50,7 +50,7 @@ export class ScheduleEntity {
   @Column({
     name: 'minute_started_at',
     type: 'integer',
-    comment: 'Hora de inicio del turno o jornada',
+    comment: 'Minuto de inicio del turno o jornada',
   })
   minuteStartedAt: number;
 
@@ -64,7 +64,7 @@ export class ScheduleEntity {
   @Column({
     name: 'minute_ended_at',
     type: 'integer',
-    comment: 'Hora de finalización del turno o jornada',
+    comment: 'Minuto de finalización del turno o jornada',
   })
   minuteEndedAt: number;
 
@@ -75,4 +75,19 @@ export class ScheduleEntity {
     comment: 'Minutos de almuerzo',
   })
   minutesLunch: number;
+
+  @Column({
+    name: 'shift_type',
+    type: 'varchar',
+    length: 20,
+    comment: 'Tipo de turno (morning, afternoon, night)',
+  })
+  shiftType: string;
+
+  @Column({
+    name: 'day_of_week',
+    type: 'integer',
+    comment: 'Día de la semana (0-6)',
+  })
+  dayOfWeek: number;
 }

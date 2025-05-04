@@ -1,14 +1,17 @@
-import { ConfigEnum, CoreRepositoryEnum } from '@shared/enums';
+import { ConfigEnum } from '@shared/enums';
+import { CoreRepositoryEnum } from 'src/shared/enums/core-repository.enum';
 import { DataSource } from 'typeorm';
 import {
   AttendanceEntity,
-  ScheduleEntity,
+  HorarioEntity,
   PermissionEntity,
   PermissionTypeEntity,
   VacationEntity,
   FormEntity,
   PermissionStateEntity,
-  VacationDetailEntity, SignerEntity,
+  VacationDetailEntity,
+  SignerEntity,
+  SiteEntity,
 } from '@core/entities';
 import { EmployeeEntity } from '../entities/employee.entity';
 
@@ -19,8 +22,8 @@ export const coreProviders = [
     inject: [ConfigEnum.PG_DATA_SOURCE],
   },
   {
-    provide: CoreRepositoryEnum.SCHEDULE_REPOSITORY,
-    useFactory: (dataSource: DataSource) => dataSource.getRepository(ScheduleEntity),
+    provide: CoreRepositoryEnum.HORARIO_REPOSITORY,
+    useFactory: (dataSource: DataSource) => dataSource.getRepository(HorarioEntity),
     inject: [ConfigEnum.PG_DATA_SOURCE],
   },
   {
@@ -49,7 +52,7 @@ export const coreProviders = [
     inject: [ConfigEnum.PG_DATA_SOURCE],
   },
   {
-    provide: CoreRepositoryEnum. VACATION_DETAIL_REPOSITORY,
+    provide: CoreRepositoryEnum.VACATION_DETAIL_REPOSITORY,
     useFactory: (dataSource: DataSource) => dataSource.getRepository(VacationDetailEntity),
     inject: [ConfigEnum.PG_DATA_SOURCE],
   },
@@ -58,11 +61,14 @@ export const coreProviders = [
     useFactory: (dataSource: DataSource) => dataSource.getRepository(SignerEntity),
     inject: [ConfigEnum.PG_DATA_SOURCE],
   },
-
+  {
+    provide: CoreRepositoryEnum.SITE_REPOSITORY,
+    useFactory: (dataSource: DataSource) => dataSource.getRepository(SiteEntity),
+    inject: [ConfigEnum.PG_DATA_SOURCE],
+  },
   {
     provide: CoreRepositoryEnum.EMPLOYEE_REPOSITORY,
     useFactory: (dataSource: DataSource) => dataSource.getRepository(EmployeeEntity),
     inject: [ConfigEnum.PG_DATA_SOURCE],
   },
-
 ];

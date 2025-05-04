@@ -7,33 +7,42 @@ import {
   FormController,
   PermissionController,
   PermissionStateController,
-  ScheduleController,
-  SignerController, VacationController, VacationDetailController,
+  HorarioController,
+  SignerController, 
+  VacationController, 
+  VacationDetailController,
 } from '@core/controllers';
 import { AttendanceService } from './services/attendance.service';
 import { FormService } from './services/form.service';
 import { PermissionService } from './services/permission.service';
 import { PermissionStateService } from './services/permission-state.service';
-import { ScheduleService } from './services/schedule.service';
+import { HorarioService } from './services/horario.service';
 import { SignerService } from './services/signer.service';
 import { VacationService } from './services/vacation.service';
 import { VacationDetailService } from './services/vacation-detail.service';
 import { EmployeeController } from './controllers/employee.controller';
 import { EmployeeService } from './services/employee.service';
+// Importamos los nuevos componentes
+import { SiteController } from './controllers/site.controller';
+import { SiteService } from './services/site.service';
 
 @Global()
 @Module({
-  imports: [DatabaseModule, CacheModule.register()],
+  imports: [
+    CacheModule.register(),
+    DatabaseModule,
+  ],
   controllers: [
     AttendanceController,
     FormController,
     PermissionController,
     PermissionStateController,
-    ScheduleController,
+    HorarioController,
     SignerController,
     VacationController,
     VacationDetailController,
-    EmployeeController
+    EmployeeController,
+    SiteController,
   ],
   providers: [
     ...coreProviders,
@@ -41,12 +50,25 @@ import { EmployeeService } from './services/employee.service';
     FormService,
     PermissionService,
     PermissionStateService,
-    ScheduleService,
+    HorarioService,
     SignerService,
     VacationService,
     VacationDetailService,
-    EmployeeService
+    EmployeeService,
+    SiteService,
   ],
-  exports: [...coreProviders],
+  exports: [
+    ...coreProviders,
+    AttendanceService,
+    FormService,
+    PermissionService,
+    PermissionStateService,
+    HorarioService,
+    SignerService,
+    VacationService,
+    VacationDetailService,
+    EmployeeService,
+    SiteService,
+  ],
 })
 export class CoreModule {}

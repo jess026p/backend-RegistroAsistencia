@@ -9,8 +9,7 @@ import {
   JoinColumn,
 } from 'typeorm';
 import { UserEntity } from '@auth/entities';
-import { CatalogueEntity } from '@common/entities';
-import { ScheduleEntity } from './schedule.entity';
+import { PositionEntity } from './position.entity';
 
 @Entity('employees', { schema: 'core' })
 export class EmployeeEntity {
@@ -52,29 +51,18 @@ export class EmployeeEntity {
   })
   userId: string;
 
-  // Relación con CatalogueEntity
-  @ManyToOne(() => CatalogueEntity)
+  // Relación con PositionEntity
+  @ManyToOne(() => PositionEntity)
   @JoinColumn({ name: 'position_id' })
-  position: CatalogueEntity;
+  position: PositionEntity;
 
   @Column({
     type: 'uuid',
     name: 'position_id',
-    comment: 'Relación con CatalogueEntity (cargo del empleado)',
+    comment: 'Relación con PositionEntity (cargo del empleado)',
+    nullable: true,
   })
   positionId: string;
-
-  @ManyToOne(() => ScheduleEntity, { nullable: true })
-  @JoinColumn({ name: 'schedule_id' })
-  schedule: ScheduleEntity;
-
-  @Column({
-    type: 'uuid',
-    name: 'schedule_id',
-    nullable: true,
-    comment: 'Relación con CatalogueEntity (cargo del empleado)',
-  })
-  scheduleId: string;
 
   @Column({
     type: 'boolean',

@@ -1,8 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { Inject } from '@nestjs/common';
 import { CoreRepositoryEnum } from '@shared/enums';
 import { ScheduleEntity } from '@core/entities';
+import { CreateScheduleDto, UpdateScheduleDto } from '../dto/schedule.dto';
 
 @Injectable()
 export class ScheduleService {
@@ -12,13 +13,21 @@ export class ScheduleService {
   }
 
 // Crear un horario
-  async create(payload: any): Promise<ScheduleEntity> {
+  async create(payload: CreateScheduleDto): Promise<ScheduleEntity> {
+    // Validar que los datos estén presentes
+    if (!payload.hourStartedAt || !payload.minuteStartedAt || !payload.hourEndedAt || !payload.minuteEndedAt || !payload.shiftType || !payload.dayOfWeek) {
+      throw new BadRequestException('Todos los campos son requeridos');
+    }
+
     // Crear la instancia del horario y asignar los datos
     const schedule = this.repository.create();
     schedule.hourStartedAt = payload.hourStartedAt;
     schedule.hourEndedAt = payload.hourEndedAt;
     schedule.minuteStartedAt = payload.minuteStartedAt;
     schedule.minuteEndedAt = payload.minuteEndedAt;
+    schedule.minutesLunch = payload.minutesLunch || 0;
+    schedule.shiftType = payload.shiftType;
+    schedule.dayOfWeek = payload.dayOfWeek;
 
     // Guardar el horario en la base de datos
     return await this.repository.save(schedule);
@@ -26,7 +35,7 @@ export class ScheduleService {
 
   // Encontrar todos los horarios
   async findAll(): Promise<ScheduleEntity[]> {
-    return await this.repository.find( );
+    return await this.repository.find();
   }
 
   // Encontrar un horario por ID
@@ -43,17 +52,25 @@ export class ScheduleService {
   }
 
   // Actualizar un horario
-  async update(id: string, payload: any): Promise<ScheduleEntity> {
+  async update(id: string, payload: UpdateScheduleDto): Promise<ScheduleEntity> {
     const schedule = await this.repository.findOneBy({ id });
 
     if (!schedule) {
       throw new NotFoundException(`Horario no encontrado`);
     }
 
+    // Validar que los datos estén presentes
+    if (!payload.hourStartedAt || !payload.minuteStartedAt || !payload.hourEndedAt || !payload.minuteEndedAt || !payload.shiftType || !payload.dayOfWeek) {
+      throw new BadRequestException('Todos los campos son requeridos');
+    }
+
     schedule.hourStartedAt = payload.hourStartedAt;
-    schedule.hourEndedAt = payload.hourStartedAt;
+    schedule.hourEndedAt = payload.hourEndedAt;
     schedule.minuteStartedAt = payload.minuteStartedAt;
     schedule.minuteEndedAt = payload.minuteEndedAt;
+    schedule.minutesLunch = payload.minutesLunch || 0;
+    schedule.shiftType = payload.shiftType;
+    schedule.dayOfWeek = payload.dayOfWeek;
 
     return await this.repository.save(schedule);
   }

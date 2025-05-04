@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPi
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { ResponseHttpModel } from '@shared/models';
 import { ScheduleService } from '../services/schedule.service';
+import { CreateScheduleDto, UpdateScheduleDto } from '../dto/schedule.dto';
 
 @ApiTags('Schedule')
 @Controller('schedules')
@@ -12,7 +13,7 @@ export class ScheduleController {
   @ApiOperation({ summary: 'Create Schedule' })
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async create(@Body() payload: any): Promise<ResponseHttpModel> {
+  async create(@Body() payload: CreateScheduleDto): Promise<ResponseHttpModel> {
     const serviceResponse = await this.scheduleService.create(payload);
 
     return {
@@ -51,7 +52,7 @@ export class ScheduleController {
   @ApiOperation({ summary: 'Update Schedule' })
   @Put(':id')
   @HttpCode(HttpStatus.CREATED)
-  async update(@Param('id', ParseUUIDPipe) id: string, @Body() payload: any): Promise<ResponseHttpModel> {
+  async update(@Param('id', ParseUUIDPipe) id: string, @Body() payload: UpdateScheduleDto): Promise<ResponseHttpModel> {
     const serviceResponse = await this.scheduleService.update(id, payload);
 
     return {

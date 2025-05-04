@@ -8,3 +8,6 @@ export * from './vacation-detail.entity';
 export * from './permission-state.entity';
 export * from './signer.entity';
 export * from './employee.entity';
+export * from './site.entity';
+export * from './horario.entity';
+export * from './position.entity';

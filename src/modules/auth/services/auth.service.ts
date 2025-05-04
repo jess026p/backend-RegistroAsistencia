@@ -405,5 +405,3 @@ export class AuthService {
     return await this.nodemailerService.sendMail(mailData);
   }
 }
-
-
