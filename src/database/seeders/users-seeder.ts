@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from '@auth/dto';
 import { UsersService } from '../../modules/auth/services/users.service';
 import { RolesService } from '@auth/services';
+import * as Bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersSeeder {
@@ -16,20 +17,18 @@ export class UsersSeeder {
   private async createUsers() {
     const roles = (await this.rolesService.findAll()).data;
 
-    const users: CreateUserDto[] = [];
-    users.push(
+    const users: any[] = [
       {
-        identification: '1',
-        name: 'Admin',
-        lastname: 'Admin',
-        password: '1234',
-        passwordChanged: true,
-        roles: [roles[0]],
+        identification: '9999999999',
+        identificationType: '1',
+        lastname: 'Administrador',
+        name: 'Administrador',
+        password: await Bcrypt.hash('12345678', 10),
+        passwordChanged: false,
+        email: 'admin@yavirac.edu.ec',
         username: 'admin',
-        email: 'admin@admin.com',
-        identificationType: null,
       },
-    );
+    ];
 
     for (const user of users) {
       await this.usersService.create(user);

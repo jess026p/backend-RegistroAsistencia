@@ -1,11 +1,14 @@
 import { Body, Controller, Delete, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Patch, Post, Put, Query } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { CreateUserDto, FilterUserDto, UpdateUserDto } from '@auth/dto';
+import { CreateUserDto, FilterUserDto, UpdateUserDto, ReadUserDto } from '@auth/dto';
 import { UserEntity } from '@auth/entities';
 import { ResponseHttpModel } from '@shared/models';
 import { Auth, PublicRoute } from '@auth/decorators';
 import { RoleEnum } from '@auth/enums';
 import { UsersService } from '../services/users.service';
+import { plainToInstance } from 'class-transformer';
+import { RoleEntity } from '../entities/role.entity';
+import { AssignRolesDto } from '../dto/users/assign-roles.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -61,9 +64,8 @@ export class UsersController {
   @HttpCode(HttpStatus.OK)
   async findOne(@Param('id', ParseUUIDPipe) id: string): Promise<ResponseHttpModel> {
     const serviceResponse = await this.usersService.findOne(id);
-
     return {
-      data: serviceResponse,
+      data: plainToInstance(ReadUserDto, serviceResponse),
       message: `show ${id}`,
       title: `Success`,
     };
@@ -77,7 +79,7 @@ export class UsersController {
     const serviceResponse = await this.usersService.update(id, payload);
 
     return {
-      data: serviceResponse,
+      data: plainToInstance(ReadUserDto, serviceResponse),
       message: `Usuario actualizado`,
       title: `Actualizado`,
     };
@@ -136,6 +138,20 @@ export class UsersController {
       data: serviceResponse,
       message: `Usuario suspendido`,
       title: `Suspendido`,
+    };
+  }
+
+  @ApiOperation({ summary: 'Asignar roles a un usuario' })
+  @Put(':id/roles')
+  async assignRoles(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() assignRolesDto: AssignRolesDto,
+  ): Promise<ResponseHttpModel> {
+    const user = await this.usersService.assignRoles(id, assignRolesDto.roles);
+    return {
+      data: user,
+      message: 'Roles asignados correctamente',
+      title: 'Éxito',
     };
   }
 }

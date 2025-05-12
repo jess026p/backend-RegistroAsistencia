@@ -76,4 +76,17 @@ export class HorarioController {
       title: 'Deleted',
     };
   }
+
+  @ApiOperation({ summary: 'Obtener ubicaciones asignadas al usuario' })
+  @Get('user/:userId/locations')
+  @HttpCode(HttpStatus.OK)
+  async findLocationsByUserId(@Param('userId', ParseUUIDPipe) userId: string): Promise<ResponseHttpModel> {
+    const serviceResponse = await this.horarioService.findLocationByUserId(userId);
+
+    return {
+      data: serviceResponse,
+      message: 'Ubicaciones encontradas',
+      title: 'Success',
+    };
+  }
 } 

@@ -11,6 +11,7 @@ import { join } from 'path';
 import { getFileName, imageFilter } from '@shared/helpers';
 import { PasswordChangeFirstDto } from '../dto/auth/password-change-first.dto';
 import { UsersService } from '../services/users.service';
+import { User as UserDecorator } from '../decorators/user.decorator';
 
 @Auth()
 @ApiTags('Auth')
@@ -200,6 +201,18 @@ export class AuthController {
       data: response,
       message: 'Imagen Subida Correctamente',
       title: 'Imagen Subida',
+    };
+  }
+
+  @ApiOperation({ summary: 'Perfil de usuario autenticado' })
+  @Get('profile')
+  @HttpCode(HttpStatus.OK)
+  async profile(@UserDecorator() user: UserEntity): Promise<ResponseHttpModel> {
+    const userProfile = await this.authService.findProfile(user.id);
+    return {
+      data: userProfile,
+      message: 'Perfil de usuario',
+      title: 'Perfil',
     };
   }
 }

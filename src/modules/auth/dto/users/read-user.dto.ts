@@ -29,4 +29,10 @@ export class ReadUserDto extends UserDto {
 
   @Expose()
   readonly username;
+
+  @Expose()
+  readonly gender;
+
+  @Expose()
+  readonly identificationType;
 }

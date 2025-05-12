@@ -16,7 +16,7 @@ import { RoleEntity } from '@auth/entities';
 import { CatalogueEntity } from '@common/entities';
 import { AttendanceEntity, PermissionStateEntity, PermissionEntity, VacationEntity } from '@core/entities';
 import { EmployeeEntity } from '../../core/entities/employee.entity';
-import { HorarioEntity } from '../../../core/entities/horario.entity';
+import { HorarioEntity } from '../../core/entities/horario.entity';
 
 @Entity('users', { schema: 'auth' })
 export class UserEntity {

@@ -8,6 +8,7 @@ import {
   minLengthValidationOptions,
 } from '@shared/validation';
 import { CatalogueEntity } from '@common/entities';
+import { RoleEntity } from '../../entities/role.entity';
 
 export class UserDto {
   @IsOptional()
@@ -48,10 +49,9 @@ export class UserDto {
   @MaxLength(150, maxLengthValidationOptions())
   readonly email: string;
 
-  @IsNotEmpty(isNotEmptyValidationOptions())
-  @IsEmail({}, isEmailValidationOptions())
-  @MaxLength(150, maxLengthValidationOptions())
-  readonly emailVerifiedAt: Date;
+  @IsOptional()
+  @IsDate()
+  readonly emailVerifiedAt?: Date;
 
   @IsNotEmpty(isNotEmptyValidationOptions())
   @IsString(isStringValidationOptions())
@@ -80,8 +80,8 @@ export class UserDto {
   @IsString(isStringValidationOptions())
   readonly name: string;
 
-  @IsNotEmpty(isNotEmptyValidationOptions())
-  readonly roles: any;
+  @IsOptional()
+  readonly roles?: RoleEntity[];
 
   @IsNotEmpty(isNotEmptyValidationOptions())
   @IsString()

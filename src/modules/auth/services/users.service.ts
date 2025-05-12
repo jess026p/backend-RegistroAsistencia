@@ -1,6 +1,6 @@
 import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
-import { FindOptionsWhere, ILike, LessThan, Repository } from 'typeorm';
+import { FindOptionsWhere, ILike, LessThan, Repository, In } from 'typeorm';
 import { CreateUserDto, FilterUserDto, ReadUserDto, UpdateUserDto } from '@auth/dto';
 import { MAX_ATTEMPTS } from '@auth/constants';
 import { UserEntity } from '@auth/entities';
@@ -8,31 +8,43 @@ import { PaginationDto } from '@core/dto';
 import { ServiceResponseHttpModel } from '@shared/models';
 import { AuthRepositoryEnum } from '@shared/enums';
 import { RoleEnum } from '@auth/enums';
+import { RoleEntity } from '../entities/role.entity';
 
 @Injectable()
 export class UsersService {
-  constructor(@Inject(AuthRepositoryEnum.USER_REPOSITORY) private repository: Repository<UserEntity>) {}
+  constructor(
+    @Inject(AuthRepositoryEnum.USER_REPOSITORY) private repository: Repository<UserEntity>,
+    @Inject(AuthRepositoryEnum.ROLE_REPOSITORY) private roleRepository: Repository<RoleEntity>,
+  ) {}
 
   async create(payload: CreateUserDto): Promise<UserEntity> {
     const newUser = this.repository.create(payload);
 
-    const userCreated = await this.repository.save(newUser);
+    if (payload.identificationType) {
+      newUser.identificationTypeId = typeof payload.identificationType === 'string'
+        ? payload.identificationType
+        : payload.identificationType.id;
+    }
+    if (payload.gender) {
+      newUser.genderId = typeof payload.gender === 'string'
+        ? payload.gender
+        : payload.gender.id;
+    }
+    if (typeof newUser.gender === 'string') newUser.gender = undefined;
+    if (typeof newUser.identificationType === 'string') newUser.identificationType = undefined;
 
-    // if (payload.roles.find((role) => role.code === RoleEnum.TEACHER)) {
-    //   await this.teachersService.create({
-    //     userId: userCreated.id,
-    //     careers: payload.careers
-    //   });
-    // }
+    console.log('Usuario a guardar (create):', newUser);
 
-    // if (payload.roles.find((role) => role.code === RoleEnum.STUDENT)) {
-    //   const studentCreated = await this.studentsService.create({
-    //     userId: userCreated.id,
-    //     careers: payload.careers
-    //   });
-    // }
+    const savedUser = await this.repository.save(newUser);
 
-    return await this.repository.save(newUser);
+    // Vuelve a consultar el usuario con las relaciones
+    return await this.repository.findOne({
+      where: { id: savedUser.id },
+      relations: {
+        identificationType: true,
+        gender: true,
+      },
+    });
   }
 
   async catalogue(): Promise<ServiceResponseHttpModel> {
@@ -73,6 +85,7 @@ export class UsersService {
       relations: {
         roles: true,
         identificationType: true,
+        gender: true,
       },
       select: { password: false },
     });
@@ -98,20 +111,36 @@ export class UsersService {
   }
 
   async update(id: string, payload: UpdateUserDto): Promise<UserEntity> {
-    const user = await this.repository.findOne({
-      relations: { roles: true },
-      where: { id },
-    });
-
-    if (!user) {
-      throw new NotFoundException('Usuario no encontrado para actualizar');
-    }
+    const user = await this.repository.findOne({ where: { id } });
+    if (!user) throw new NotFoundException('Usuario no encontrado para actualizar');
 
     this.repository.merge(user, payload);
 
-    user.roles = payload.roles;
+    if (payload.identificationType) {
+      user.identificationTypeId = typeof payload.identificationType === 'string'
+        ? payload.identificationType
+        : payload.identificationType.id;
+    }
+    if (payload.gender) {
+      user.genderId = typeof payload.gender === 'string'
+        ? payload.gender
+        : payload.gender.id;
+    }
+    if (typeof user.gender === 'string') user.gender = undefined;
+    if (typeof user.identificationType === 'string') user.identificationType = undefined;
 
-    return await this.repository.save(user);
+    console.log('Usuario a guardar (update):', user);
+
+    await this.repository.save(user);
+
+    // Vuelve a consultar el usuario con las relaciones
+    return await this.repository.findOne({
+      where: { id },
+      relations: {
+        identificationType: true,
+        gender: true,
+      },
+    });
   }
 
   async reactivate(id: string): Promise<ReadUserDto> {
@@ -206,5 +235,18 @@ export class UsersService {
     const userUpdated = await this.repository.save(user);
 
     return plainToInstance(ReadUserDto, userUpdated);
+  }
+
+  async assignRoles(userId: string, roleIds: string[]): Promise<UserEntity> {
+    const user = await this.repository.findOne({
+      where: { id: userId },
+      relations: { roles: true },
+    });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+
+    const roles = await this.roleRepository.findBy({ id: In(roleIds) });
+    user.roles = roles;
+
+    return await this.repository.save(user);
   }
 }
