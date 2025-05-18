@@ -12,6 +12,7 @@ import {
   VacationDetailEntity,
   SignerEntity,
   SiteEntity,
+  AsistenciaEntity,
 } from '@core/entities';
 import { EmployeeEntity } from '../entities/employee.entity';
 
@@ -69,6 +70,11 @@ export const coreProviders = [
   {
     provide: CoreRepositoryEnum.EMPLOYEE_REPOSITORY,
     useFactory: (dataSource: DataSource) => dataSource.getRepository(EmployeeEntity),
+    inject: [ConfigEnum.PG_DATA_SOURCE],
+  },
+  {
+    provide: CoreRepositoryEnum.ASISTENCIA_REPOSITORY,
+    useFactory: (dataSource: DataSource) => dataSource.getRepository(AsistenciaEntity),
     inject: [ConfigEnum.PG_DATA_SOURCE],
   },
 ];

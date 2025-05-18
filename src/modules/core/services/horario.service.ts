@@ -112,11 +112,12 @@ export class HorarioService {
       try {
         if (Array.isArray(diasOriginal)) {
           if (diasOriginal.length === 1) {
-            diasNombres = diasSemana[diasOriginal[0]] || 'Día no válido';
+            const diaIndex = diasOriginal[0] === 7 ? 0 : diasOriginal[0];
+            diasNombres = diasSemana[diaIndex] || 'Día no válido';
           } else {
             diasNombres = diasOriginal
-              .map(d => diasSemana[d] || 'Día no válido')
-              .filter(d => d !== 'Día no válido')
+              .map(d => diasSemana[d === 7 ? 0 : d])
+              .filter(d => d !== undefined)
               .join(', ');
           }
         } else {

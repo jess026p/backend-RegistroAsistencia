@@ -11,3 +11,4 @@ export * from './employee.entity';
 export * from './site.entity';
 export * from './horario.entity';
 export * from './position.entity';
+export * from './asistencia.entity';
