@@ -33,8 +33,8 @@ export class UserDto {
   readonly avatar: string;
 
   @IsOptional()
-  @IsDate(isNotEmptyValidationOptions())
-  readonly birthdate: Date;
+  @IsString()
+  readonly birthdate: string;
 
   @IsOptional()
   @MaxLength(10, maxLengthValidationOptions())

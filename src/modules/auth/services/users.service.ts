@@ -18,7 +18,11 @@ export class UsersService {
   ) {}
 
   async create(payload: CreateUserDto): Promise<UserEntity> {
-    const newUser = this.repository.create(payload);
+    const data = { ...payload };
+    if (data.birthdate && typeof data.birthdate !== 'string') {
+      data.birthdate = (data.birthdate as Date).toISOString().slice(0, 10);
+    }
+    const newUser = this.repository.create(data);
 
     if (payload.identificationType) {
       newUser.identificationTypeId = typeof payload.identificationType === 'string'
@@ -114,7 +118,11 @@ export class UsersService {
     const user = await this.repository.findOne({ where: { id } });
     if (!user) throw new NotFoundException('Usuario no encontrado para actualizar');
 
-    this.repository.merge(user, payload);
+    const data = { ...payload };
+    if (data.birthdate && typeof data.birthdate !== 'string') {
+      data.birthdate = (data.birthdate as Date).toISOString().slice(0, 10);
+    }
+    this.repository.merge(user, data);
 
     if (payload.identificationType) {
       user.identificationTypeId = typeof payload.identificationType === 'string'
@@ -208,11 +216,11 @@ export class UsersService {
     };
   }
 
-  private async filterByBirthdate(birthdate: Date): Promise<ServiceResponseHttpModel> {
+  private async filterByBirthdate(birthdate: string): Promise<ServiceResponseHttpModel> {
     const where: FindOptionsWhere<UserEntity> = {};
 
     if (birthdate) {
-      where.birthdate = LessThan(birthdate);
+      where.birthdate = birthdate;
     }
 
     const response = await this.repository.findAndCount({ where });

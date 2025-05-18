@@ -185,7 +185,7 @@ export class UserEntity {
     nullable: true,
     comment: 'Fecha de nacimiento',
   })
-  birthdate: Date;
+  birthdate: string;
 
   @Column({
     name: 'email_verified_at',

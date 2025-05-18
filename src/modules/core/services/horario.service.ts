@@ -16,7 +16,17 @@ export class HorarioService {
   ) {}
 
   async create(payload: CreateHorarioDto): Promise<HorarioEntity> {
-    const horario = this.repository.create(payload);
+    const data = { ...payload };
+    if (data.fechaInicio && typeof data.fechaInicio !== 'string') {
+      data.fechaInicio = (data.fechaInicio as Date).toISOString().slice(0, 10);
+    }
+    if (data.fechaFin && typeof data.fechaFin !== 'string') {
+      data.fechaFin = (data.fechaFin as Date).toISOString().slice(0, 10);
+    }
+    if (data.fechaFinRepeticion && typeof data.fechaFinRepeticion !== 'string') {
+      data.fechaFinRepeticion = (data.fechaFinRepeticion as Date).toISOString().slice(0, 10);
+    }
+    const horario = this.repository.create(data);
     return await this.repository.save(horario);
   }
 
@@ -46,7 +56,17 @@ export class HorarioService {
       throw new NotFoundException(`Horario no encontrado`);
     }
 
-    this.repository.merge(horario, payload);
+    const data = { ...payload };
+    if (data.fechaInicio && typeof data.fechaInicio !== 'string') {
+      data.fechaInicio = (data.fechaInicio as Date).toISOString().slice(0, 10);
+    }
+    if (data.fechaFin && typeof data.fechaFin !== 'string') {
+      data.fechaFin = (data.fechaFin as Date).toISOString().slice(0, 10);
+    }
+    if (data.fechaFinRepeticion && typeof data.fechaFinRepeticion !== 'string') {
+      data.fechaFinRepeticion = (data.fechaFinRepeticion as Date).toISOString().slice(0, 10);
+    }
+    this.repository.merge(horario, data);
     return await this.repository.save(horario);
   }
 
@@ -71,8 +91,6 @@ export class HorarioService {
         horaFin: true,
         fechaInicio: true,
         fechaFin: true,
-        horaAlmuerzoSalida: true,
-        horaAlmuerzoRegreso: true,
         toleranciaInicioAntes: true,
         toleranciaInicioDespues: true,
         toleranciaFinDespues: true,

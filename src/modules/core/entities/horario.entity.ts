@@ -62,7 +62,7 @@ export class HorarioEntity {
     nullable: true,
     comment: 'Fecha de inicio del horario',
   })
-  fechaInicio: Date;
+  fechaInicio: string;
 
   @Column({
     name: 'fecha_fin',
@@ -70,23 +70,7 @@ export class HorarioEntity {
     nullable: true,
     comment: 'Fecha de fin del horario',
   })
-  fechaFin: Date;
-
-  @Column({
-    name: 'hora_almuerzo_salida',
-    type: 'time',
-    nullable: true,
-    comment: 'Hora de salida para almuerzo',
-  })
-  horaAlmuerzoSalida: string;
-
-  @Column({
-    name: 'hora_almuerzo_regreso',
-    type: 'time',
-    nullable: true,
-    comment: 'Hora de regreso del almuerzo',
-  })
-  horaAlmuerzoRegreso: string;
+  fechaFin: string;
 
   @Column({
     name: 'tolerancia_inicio_antes',
@@ -113,6 +97,14 @@ export class HorarioEntity {
   toleranciaFinDespues: number;
 
   @Column({
+    name: 'atraso_permitido',
+    type: 'int',
+    default: 5,
+    comment: 'Minutos de atraso permitidos',
+  })
+  atrasoPermitido: number;
+
+  @Column({
     name: 'repetir_turno',
     type: 'boolean',
     default: false,
@@ -126,7 +118,7 @@ export class HorarioEntity {
     nullable: true,
     comment: 'Fecha hasta la que se repite el turno',
   })
-  fechaFinRepeticion: Date;
+  fechaFinRepeticion: string;
 
   @Column({
     name: 'ubicacion_nombre',

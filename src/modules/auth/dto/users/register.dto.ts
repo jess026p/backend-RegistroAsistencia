@@ -62,8 +62,8 @@ export class RegisterUserEmployeeDto {
   cell_phone?: string;
 
   @IsOptional()
-  @IsDate()
-  birthdate?: Date;
+  @IsString()
+  birthdate?: string;
 
   @IsOptional()
   @IsUUID()

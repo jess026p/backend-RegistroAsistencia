@@ -3,8 +3,8 @@ import { PaginationDto } from '@core/dto';
 
 export class FilterUserDto extends PaginationDto {
   @IsOptional()
-  @IsDate()
-  readonly birthdate: Date;
+  @IsString()
+  readonly birthdate: string;
 
   @IsOptional()
   @IsString()

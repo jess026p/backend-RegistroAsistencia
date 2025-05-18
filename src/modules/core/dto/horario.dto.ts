@@ -9,38 +9,30 @@ export class CreateHorarioDto {
   @IsString()
   nombreTurno?: string;
 
-  @IsNotEmpty()
-  @IsArray()
-  @ArrayMinSize(1)
-  @ArrayMaxSize(7)
-  @IsInt({ each: true })
-  @Min(1, { each: true })
-  @Max(7, { each: true })
+  @IsNotEmpty({ message: 'Los días son requeridos' })
+  @IsArray({ message: 'Los días deben ser un array' })
+  @ArrayMinSize(1, { message: 'Debe seleccionar al menos un día' })
+  @ArrayMaxSize(7, { message: 'No puede seleccionar más de 7 días' })
+  @IsInt({ each: true, message: 'Cada día debe ser un número entero' })
+  @Min(1, { each: true, message: 'Los días deben estar entre 1 y 7' })
+  @Max(7, { each: true, message: 'Los días deben estar entre 1 y 7' })
   dias: number[];
 
-  @IsNotEmpty()
-  @IsString()
+  @IsNotEmpty({ message: 'La hora de inicio es requerida' })
+  @IsString({ message: 'La hora de inicio debe ser una cadena de texto' })
   horaInicio: string;
 
-  @IsNotEmpty()
-  @IsString()
+  @IsNotEmpty({ message: 'La hora de fin es requerida' })
+  @IsString({ message: 'La hora de fin debe ser una cadena de texto' })
   horaFin: string;
 
   @IsOptional()
-  @IsDate()
-  fechaInicio?: Date;
-
-  @IsOptional()
-  @IsDate()
-  fechaFin?: Date;
+  @IsString()
+  fechaInicio?: string;
 
   @IsOptional()
   @IsString()
-  horaAlmuerzoSalida?: string;
-
-  @IsOptional()
-  @IsString()
-  horaAlmuerzoRegreso?: string;
+  fechaFin?: string;
 
   @IsOptional()
   @IsInt()
@@ -61,12 +53,18 @@ export class CreateHorarioDto {
   toleranciaFinDespues?: number;
 
   @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(60)
+  atrasoPermitido?: number;
+
+  @IsOptional()
   @IsBoolean()
   repetirTurno?: boolean;
 
   @IsOptional()
-  @IsDate()
-  fechaFinRepeticion?: Date;
+  @IsString()
+  fechaFinRepeticion?: string;
 
   @IsOptional()
   @IsString()

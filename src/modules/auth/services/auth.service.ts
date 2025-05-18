@@ -209,7 +209,12 @@ export class AuthService {
       throw new NotFoundException('Usuario no encontrado para actualizar el perfil');
     }
 
-    const profileUpdated = await this.repository.update(id, payload);
+    const data = { ...payload };
+    if (data.birthdate && typeof data.birthdate !== 'string') {
+      data.birthdate = (data.birthdate as Date).toISOString().slice(0, 10);
+    }
+
+    const profileUpdated = await this.repository.update(id, data);
 
     return plainToInstance(ReadProfileDto, profileUpdated);
   }
