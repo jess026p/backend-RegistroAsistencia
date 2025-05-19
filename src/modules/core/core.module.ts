@@ -25,6 +25,8 @@ import { EmployeeService } from './services/employee.service';
 // Importamos los nuevos componentes
 import { SiteController } from './controllers/site.controller';
 import { SiteService } from './services/site.service';
+import { AsistenciaController } from './controllers/asistencia.controller';
+import { AsistenciaService } from './services/asistencia.service';
 
 @Global()
 @Module({
@@ -43,6 +45,7 @@ import { SiteService } from './services/site.service';
     VacationDetailController,
     EmployeeController,
     SiteController,
+    AsistenciaController,
   ],
   providers: [
     ...coreProviders,
@@ -56,6 +59,7 @@ import { SiteService } from './services/site.service';
     VacationDetailService,
     EmployeeService,
     SiteService,
+    AsistenciaService,
   ],
   exports: [
     ...coreProviders,
@@ -69,6 +73,7 @@ import { SiteService } from './services/site.service';
     VacationDetailService,
     EmployeeService,
     SiteService,
+    AsistenciaService,
   ],
 })
 export class CoreModule {}

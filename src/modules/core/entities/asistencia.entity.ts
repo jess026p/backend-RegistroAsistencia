@@ -3,7 +3,6 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
-  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
@@ -42,20 +41,11 @@ export class AsistenciaEntity {
   lng: number;
 
   @Column({ type: 'varchar' })
-  estado: 'entrada' | 'salida' | 'atraso' | 'fuera_de_zona' | 'fuera_de_rango';
+  estado: string; // Aquí puedes usar 'entrada' o 'salida'
 
   @Column({ type: 'varchar', nullable: true })
   motivo: string;
 
-  @Column({ type: 'varchar' })
-  tipo: 'entrada' | 'salida';
-
-  @Column({ name: 'atraso_permitido', type: 'int', default: 0 })
-  atrasoPermitido: number;
-
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
-} 
+}

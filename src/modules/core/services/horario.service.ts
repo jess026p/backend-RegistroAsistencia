@@ -100,7 +100,8 @@ export class HorarioService {
         ubicacionLat: true,
         ubicacionLng: true,
         radioUbicacion: true,
-        userId: true
+        userId: true,
+        atrasoPermitido: true
       }
     });
 

@@ -1,4 +1,12 @@
-import { IsNotEmpty, IsString, IsUUID, IsDateString, IsNumber, IsOptional, IsIn, IsInt } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsUUID,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  IsIn
+} from 'class-validator';
 
 export class CreateAsistenciaDto {
   @IsNotEmpty()
@@ -25,19 +33,12 @@ export class CreateAsistenciaDto {
   @IsNumber()
   lng: number;
 
-  @IsNotEmpty()
-  @IsIn(['entrada', 'salida', 'atraso', 'fuera_de_zona', 'fuera_de_rango'])
-  estado: 'entrada' | 'salida' | 'atraso' | 'fuera_de_zona' | 'fuera_de_rango';
+  @IsString()
+  @IsIn(['entrada', 'salida', 'atraso', 'presente', 'fuera_de_zona', 'fuera_de_rango'])
+  estado: string;
+
 
   @IsOptional()
   @IsString()
   motivo?: string;
-
-  @IsNotEmpty()
-  @IsIn(['entrada', 'salida'])
-  tipo: 'entrada' | 'salida';
-
-  @IsOptional()
-  @IsInt()
-  atrasoPermitido?: number;
-} 
+}
