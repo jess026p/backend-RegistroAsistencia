@@ -33,12 +33,32 @@ export class CreateAsistenciaDto {
   @IsNumber()
   lng: number;
 
-  @IsString()
+  @IsOptional()
   @IsIn(['entrada', 'salida', 'atraso', 'presente', 'fuera_de_zona', 'fuera_de_rango'])
   estado: string;
-
 
   @IsOptional()
   @IsString()
   motivo?: string;
+
+  @IsOptional()
+  @IsString()
+  hora_salida?: string;
+
+  @IsOptional()
+  @IsNumber()
+  lat_salida?: number;
+
+  @IsOptional()
+  @IsNumber()
+  lng_salida?: number;
+
+  @IsOptional()
+  @IsString()
+  @IsIn(['entrada', 'salida', 'atraso', 'presente', 'fuera_de_zona', 'fuera_de_rango'])
+  estado_salida?: string;
+
+  @IsOptional()
+  @IsString()
+  motivo_salida?: string;
 }

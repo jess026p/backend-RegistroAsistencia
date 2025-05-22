@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { AsistenciaService } from '../services/asistencia.service';
 import { CreateAsistenciaDto } from '../dto/asistencia.dto';
 
@@ -13,18 +13,20 @@ export class AsistenciaController {
     return { success: true, data, message: 'Asistencia registrada correctamente' };
   }
 
-  @Get('user/:userId')
-  async obtenerAsistenciasPorUsuario(@Param('userId', ParseUUIDPipe) userId: string) {
-    const data = await this.asistenciaService.obtenerAsistenciasPorUsuario(userId);
+
+  @Get('resumen/:userId')
+  async getResumenAsistenciaUsuario(
+    @Param('userId', ParseUUIDPipe) userId: string,
+    @Query('mes') mes?: string,
+    @Query('anio') anio?: string
+  ) {
+    const data = await this.asistenciaService.getResumenAsistenciaUsuario(userId, mes, anio);
     return { success: true, data };
   }
 
-  @Get('user/:userId/fecha/:fecha')
-  async obtenerAsistenciasPorUsuarioYFecha(
-    @Param('userId', ParseUUIDPipe) userId: string,
-    @Param('fecha') fecha: string,
-  ) {
-    const data = await this.asistenciaService.obtenerAsistenciasPorUsuarioYFecha(userId, fecha);
+  @Get('historial/:userId')
+  async getHistorialAsistenciaUsuario(@Param('userId', ParseUUIDPipe) userId: string) {
+    const data = await this.asistenciaService.getHistorialAsistenciaUsuario(userId);
     return { success: true, data };
   }
 } 

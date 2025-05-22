@@ -4,6 +4,9 @@ import { AsistenciaEntity } from '../entities/asistencia.entity';
 import { CreateAsistenciaDto } from '../dto/asistencia.dto';
 import { HorarioEntity } from '../entities/horario.entity';
 import { CoreRepositoryEnum } from '@shared/enums';
+import { Between } from 'typeorm';
+import { UserEntity } from 'src/modules/auth/entities/user.entity';
+import { ILike } from 'typeorm';
 
 function calcularEstadoYMotivoBackend(
   ahora: string,
@@ -34,6 +37,7 @@ function calcularEstadoYMotivoBackend(
 
   const inicioSalida = horaFin;
   const finSalida = new Date(horaFin.getTime() + toleranciaFinDespues * 60000);
+  const finAtrasoSalida = new Date(finSalida.getTime() + atrasoPermitido * 60000);
 
   const distancia = this.calcularDistancia(
     lat, lng,
@@ -47,19 +51,21 @@ function calcularEstadoYMotivoBackend(
         ? { estado: 'entrada', motivo: 'Marcó en el rango permitido (puntual)' }
         : { estado: 'fuera_de_zona', motivo: 'Marcó fuera de la zona permitida (puntual)' };
     }
-
     if (ahoraDate > finPuntual && ahoraDate <= finAtraso) {
       return dentroDeZona
         ? { estado: 'atraso', motivo: 'Marcó en el rango de atraso' }
         : { estado: 'fuera_de_zona', motivo: 'Marcó fuera de la zona permitida (atraso)' };
     }
-
     if (ahoraDate >= inicioSalida && ahoraDate <= finSalida) {
       return dentroDeZona
         ? { estado: 'salida', motivo: 'Salida registrada en el rango permitido' }
         : { estado: 'fuera_de_zona', motivo: 'Salida fuera de la zona permitida' };
     }
-
+    if (ahoraDate > finSalida && ahoraDate <= finAtrasoSalida) {
+      return dentroDeZona
+        ? { estado: 'atraso', motivo: 'Salida registrada con atraso' }
+        : { estado: 'fuera_de_zona', motivo: 'Salida fuera de la zona permitida (atraso)' };
+    }
     return dentroDeZona
       ? { estado: 'presente', motivo: 'Marcó durante el horario vigente' }
       : { estado: 'fuera_de_zona', motivo: 'Marcó fuera de la zona permitida (vigente)' };
@@ -76,37 +82,25 @@ export class AsistenciaService {
     @Inject(CoreRepositoryEnum.HORARIO_REPOSITORY)
     private readonly horarioRepository: Repository<HorarioEntity>,
   ) {}
-
   async marcarAsistencia(payload: CreateAsistenciaDto) {
-    const existe = await this.repository.findOne({
-      where: {
-        userId: payload.userId,
-        fecha: payload.fecha,
-      },
-    });
-
-    if (existe) {
-      throw new BadRequestException(`Ya existe un registro de asistencia para esta fecha`);
-    }
-
     const horario = await this.horarioRepository.findOne({ where: { id: payload.horarioId } });
     if (!horario) throw new NotFoundException('Horario no encontrado');
-
+  
     if (horario.fechaFinRepeticion && payload.fecha > horario.fechaFinRepeticion) {
       throw new BadRequestException('No puedes marcar fuera del rango de repetición del turno');
     }
-
-    // Validar día de la semana (ajustado para evitar desfase de zona horaria usando UTC)
+  
+    // Validar día de la semana
     const [year, month, day] = payload.fecha.split('-').map(Number);
     const fechaMarcacion = new Date(Date.UTC(year, month - 1, day));
-    const diaSemana = fechaMarcacion.getUTCDay(); // 0=Domingo, 1=Lunes, ..., 6=Sábado
+    const diaSemana = fechaMarcacion.getUTCDay(); // 0=domingo
     const diaControl = diaSemana === 0 ? 7 : diaSemana;
-    console.log('DEBUG asistencia: fecha payload:', payload.fecha, 'diaControl:', diaControl, 'horario.dias:', horario.dias);
+  
     if (!horario.dias.includes(diaControl)) {
       throw new BadRequestException('Día no válido para este horario');
     }
-
-    // Validar que la fecha de marcación sea la fecha actual del sistema
+  
+    // Validar que la fecha de marcación sea la actual
     const fechaActualSistema = new Date();
     const yyyy = fechaActualSistema.getFullYear();
     const mm = String(fechaActualSistema.getMonth() + 1).padStart(2, '0');
@@ -115,46 +109,178 @@ export class AsistenciaService {
     if (payload.fecha !== fechaHoy) {
       throw new BadRequestException('Solo puedes marcar asistencia para la fecha actual');
     }
-
-    // Usar la fecha de la marcación para calcular los rangos
-       const { estado, motivo } = calcularEstadoYMotivoBackend.call(this,
+  
+    // Calcular estado y motivo con base en hora y ubicación
+    const { estado, motivo } = calcularEstadoYMotivoBackend.call(
+      this,
       payload.hora,
       horario,
       payload.lat,
       payload.lng
     );
-
+  
     if (estado === 'fuera_de_rango') {
       throw new BadRequestException('Fuera del rango permitido para marcar asistencia');
     }
-
-    const asistencia = this.repository.create({
-      ...payload,
-      estado,
-      motivo,
+  
+    const existe = await this.repository.findOne({
+      where: {
+        userId: payload.userId,
+        fecha: payload.fecha,
+        horarioId: payload.horarioId,
+      },
     });
+  
+    // 🔹 CASO 1: NO EXISTE REGISTRO AÚN (entrada)
+    if (!existe) {
+      if (estado === 'salida') {
+        throw new BadRequestException('Debes marcar la entrada antes de poder registrar la salida.');
+      }
+  
+      // ✅ permitir entrada incluso si está fuera de la zona
+      const estadosEntradaPermitidos = ['entrada', 'atraso', 'fuera_de_zona'];
+  
+      if (!estadosEntradaPermitidos.includes(estado)) {
+        throw new BadRequestException('Solo puedes registrar la entrada en este momento');
+      }
+  
+      const asistencia = this.repository.create({
+        ...payload,
+        estado,
+        motivo,
+      });
+  
+      return await this.repository.save(asistencia);
+    }
+  
+    // 🔹 CASO 2: YA EXISTE REGISTRO, MARCAR SALIDA
+    if (existe.hora_salida) {
+      throw new BadRequestException('Ya has registrado tu salida para este horario');
+    }
+  
+    const estadosSalidaPermitidos = ['salida', 'fuera_de_zona'];
 
-    return await this.repository.save(asistencia);
+    if (!estadosSalidaPermitidos.includes(estado)) {
+      throw new BadRequestException('Solo puedes registrar la salida en este momento');
+    }
+    
+  
+    // Calcular tiempo total
+    const horaEntrada = new Date(`${payload.fecha}T${existe.hora}`);
+    const horaSalida = new Date(`${payload.fecha}T${payload.hora}`);
+    const tiempoTotal = horaSalida.getTime() - horaEntrada.getTime();
+    const horas = Math.floor(tiempoTotal / (1000 * 60 * 60));
+    const minutos = Math.floor((tiempoTotal % (1000 * 60 * 60)) / (1000 * 60));
+    const tiempoTotalStr = `${horas}:${minutos.toString().padStart(2, '0')}:00`;
+  
+    existe.hora_salida = payload.hora;
+    existe.lat_salida = payload.lat;
+    existe.lng_salida = payload.lng;
+    existe.estado_salida = estado;
+    existe.motivo_salida = motivo;
+    existe.tiempo_total = tiempoTotalStr;
+  
+    return await this.repository.save(existe);
   }
-
-  async obtenerAsistenciasPorUsuario(userId: string) {
-    return await this.repository.find({
-      where: { userId },
-      relations: ['horario'],
-      order: { fecha: 'DESC', hora: 'DESC' },
+  
+  async buscarUsuarioResumen(termino: string): Promise<any> {
+    const usuario = await this.repository.manager.findOne(UserEntity, {
+      where: [
+        { identification: termino },
+        { name: termino },
+        { lastname: termino }
+      ],
+      select: ['id', 'name', 'lastname', 'identification']
     });
+  
+    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+  
+    return this.getResumenAsistenciaUsuario(usuario.id);
   }
-
-  async obtenerAsistenciasPorUsuarioYFecha(userId: string, fecha: string) {
-    return await this.repository.find({
-      where: { userId, fecha },
-      relations: ['horario'],
-      order: { hora: 'DESC' },
+  
+  async getResumenByIdentificacion(termino: string): Promise<any> {
+    const usuario = await this.repository.manager.findOne(UserEntity, {
+      where: [
+        { identification: termino },
+        { name: ILike(`%${termino}%`) },
+        { lastname: ILike(`%${termino}%`) },
+      ],
+      select: ['id', 'name', 'lastname'],
     });
+  
+    if (!usuario) throw new NotFoundException('Usuario no encontrado');
+  
+    const fechaActual = new Date();
+    const yyyy = fechaActual.getFullYear();
+    const mm = String(fechaActual.getMonth() + 1).padStart(2, '0');
+    const dd = String(fechaActual.getDate()).padStart(2, '0');
+    const fechaHoy = `${yyyy}-${mm}-${dd}`;
+    const primerDiaMes = `${yyyy}-${mm}-01`;
+  
+    const asistencias = await this.repository.find({
+      where: {
+        userId: usuario.id,
+        fecha: Between(primerDiaMes, fechaHoy),
+      },
+      order: { fecha: 'ASC', hora: 'ASC' },
+    });
+  
+    const horarios = await this.horarioRepository.find({ where: { userId: usuario.id } });
+  
+    const diasHabiles: string[] = [];
+    for (let d = 1; d <= fechaActual.getDate(); d++) {
+      const fecha = new Date(yyyy, fechaActual.getMonth(), d);
+      const diaSemana = fecha.getDay() === 0 ? 7 : fecha.getDay();
+      for (const horario of horarios) {
+        if (horario.dias.includes(diaSemana)) {
+          diasHabiles.push(`${yyyy}-${mm}-${String(d).padStart(2, '0')}`);
+          break;
+        }
+      }
+    }
+  
+    const fechasAsistidas = asistencias.map(a => a.fecha);
+    const faltas = diasHabiles.filter(d => !fechasAsistidas.includes(d));
+    const atrasos = asistencias.filter(a => a.estado === 'atraso').length;
+    const diasLaborados = new Set(asistencias.map(a => a.fecha)).size;
+  
+    const asistenciaHoy = asistencias.find(a => a.fecha === fechaHoy);
+  
+    const registroHoy = asistenciaHoy ? {
+      estado: asistenciaHoy.estado,
+      motivo: asistenciaHoy.motivo,
+      entrada: {
+        hora: asistenciaHoy.hora,
+        lat: asistenciaHoy.lat,
+        lng: asistenciaHoy.lng,
+      },
+      salida: asistenciaHoy.hora_salida ? {
+        hora: asistenciaHoy.hora_salida,
+        lat: asistenciaHoy.lat_salida,
+        lng: asistenciaHoy.lng_salida,
+      } : null,
+    } : {
+      estado: 'No registrado',
+      motivo: 'Sin registro de asistencia',
+      entrada: null,
+      salida: null,
+    };
+  
+    return {
+      nombre: `${usuario.name} ${usuario.lastname}`,
+      dias_laborados: diasLaborados,
+      faltas_sin_justificacion: faltas.length,
+      atrasos: atrasos,
+      registro_hoy: registroHoy,
+    };
   }
+  
+
+
+
 
   calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: number): number {
-    const R = 6371e3;
+      const R = 6371e3;
     const φ1 = lat1 * Math.PI / 180;
     const φ2 = lat2 * Math.PI / 180;
     const Δφ = (lat2 - lat1) * Math.PI / 180;
@@ -162,7 +288,120 @@ export class AsistenciaService {
     const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
       Math.cos(φ1) * Math.cos(φ2) *
       Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    async getResumenAdmin(userId: string): Promise<any> {
+      const usuario = await this.repository.manager.findOne(UserEntity, {
+        where: { id: userId },
+        select: ['id', 'name', 'lastname'],
+      });
+    
+      if (!usuario) throw new NotFoundException('Usuario no encontrado');
+    
+      const asistencias = await this.repository.find({
+        where: { userId },
+        order: { fecha: 'DESC', hora: 'ASC' }
+      });
+    
+      const diasLaborados = new Set(asistencias.map(a => a.fecha)).size;
+      const faltas = asistencias.filter(a => !a.estado || a.estado === 'fuera_de_rango').length;
+      const atrasos = asistencias.filter(a => a.estado === 'atraso').length;
+    
+      const registros = asistencias.map(a => ({
+        estado: a.estado,
+        entrada: `${a.fecha} ${a.hora}`,
+        salida: a.hora_salida || '',
+        mapa: true
+      }));
+    
+      return {
+        nombre: `${usuario.name} ${usuario.lastname}`,
+        diasLaborados,
+        faltas,
+        atrasos,
+        registros
+      };
+    }
+    
+  async getResumenAsistenciaUsuario(userId: string, mes?: string, anio?: string): Promise<any> {
+    const fechaActual = new Date();
+    const yyyy = anio || fechaActual.getFullYear();
+    const mm = mes || String(fechaActual.getMonth() + 1).padStart(2, '0');
+    const primerDiaMes = `${yyyy}-${mm}-01`;
+    const ultimoDiaMes = new Date(Number(yyyy), Number(mm), 0).getDate();
+    const fechaHoy = `${yyyy}-${mm}-${String(fechaActual.getDate()).padStart(2, '0')}`;
+    const ultimoDia = `${yyyy}-${mm}-${ultimoDiaMes}`;
+
+    const asistenciasMes = await this.repository.find({
+      where: {
+        userId,
+        fecha: Between(primerDiaMes, ultimoDia),
+      },
+      order: { fecha: 'ASC', hora: 'ASC' },
+    });
+
+    const diasLaborados = new Set(asistenciasMes.map(a => a.fecha)).size;
+    const horarios = await this.horarioRepository.find({ where: { userId } });
+    const diasHabiles: string[] = [];
+    for (let d = 1; d <= ultimoDiaMes; d++) {
+      const fecha = new Date(Number(yyyy), Number(mm) - 1, d);
+      const diaSemana = fecha.getDay() === 0 ? 7 : fecha.getDay();
+      for (const horario of horarios) {
+        if (horario.dias.includes(diaSemana)) {
+          diasHabiles.push(`${yyyy}-${mm}-${String(d).padStart(2, '0')}`);
+          break;
+        }
+      }
+    }
+    const fechasAsistidas = asistenciasMes.map(a => a.fecha);
+    const faltas = diasHabiles.filter(dia => !fechasAsistidas.includes(dia));
+    const atrasos = asistenciasMes.filter(a => a.estado === 'atraso').length;
+    const asistenciaHoy = asistenciasMes.find(a => a.fecha === fechaHoy);
+
+    const registroHoy = asistenciaHoy ? {
+      fecha: asistenciaHoy.fecha,
+      estado: asistenciaHoy.estado,
+      motivo: asistenciaHoy.motivo,
+      hora_entrada: asistenciaHoy.hora,
+      lat_entrada: asistenciaHoy.lat,
+      lng_entrada: asistenciaHoy.lng,
+      estado_entrada: asistenciaHoy.estado,
+      motivo_entrada: asistenciaHoy.motivo,
+      hora_salida: asistenciaHoy.hora_salida,
+      lat_salida: asistenciaHoy.lat_salida,
+      lng_salida: asistenciaHoy.lng_salida,
+      estado_salida: asistenciaHoy.estado_salida,
+      motivo_salida: asistenciaHoy.motivo_salida,
+    } : null;
+
+    return {
+      dias_laborados: diasLaborados,
+      faltas_sin_justificacion: faltas.length,
+      atrasos: atrasos,
+      registro_hoy: registroHoy,
+    };
+  }
+
+  async getHistorialAsistenciaUsuario(userId: string): Promise<any[]> {
+    const asistencias = await this.repository.find({
+      where: { userId },
+      order: { fecha: 'DESC', hora: 'ASC' }
+    });
+
+    return asistencias.map(a => ({
+      fecha: a.fecha,
+      hora_entrada: a.hora,
+      lat_entrada: a.lat,
+      lng_entrada: a.lng,
+      estado_entrada: a.estado,
+      motivo_entrada: a.motivo,
+      hora_salida: a.hora_salida,
+      lat_salida: a.lat_salida,
+      lng_salida: a.lng_salida,
+      estado_salida: a.estado_salida,
+      motivo_salida: a.motivo_salida,
+    }));
   }
 }

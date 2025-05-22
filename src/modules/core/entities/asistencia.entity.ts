@@ -46,6 +46,24 @@ export class AsistenciaEntity {
   @Column({ type: 'varchar', nullable: true })
   motivo: string;
 
+  @Column({ type: 'time', nullable: true })
+  hora_salida: string;
+
+  @Column({ type: 'double precision', nullable: true })
+  lat_salida: number;
+
+  @Column({ type: 'double precision', nullable: true })
+  lng_salida: number;
+
+  @Column({ type: 'varchar', nullable: true })
+  estado_salida: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  motivo_salida: string;
+
+  @Column({ type: 'interval', nullable: true })
+  tiempo_total: string;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 }
