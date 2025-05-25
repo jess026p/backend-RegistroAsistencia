@@ -29,4 +29,13 @@ export class AsistenciaController {
     const data = await this.asistenciaService.getHistorialAsistenciaUsuario(userId);
     return { success: true, data };
   }
+
+  @Get('user/:userId/fecha/:fecha')
+  async getAsistenciaByUserAndDate(
+    @Param('userId', ParseUUIDPipe) userId: string,
+    @Param('fecha') fecha: string
+  ) {
+    const data = await this.asistenciaService.findByUserAndDate(userId, fecha);
+    return { success: true, data };
+  }
 } 

@@ -26,6 +26,15 @@ export class HorarioService {
     if (data.fechaFinRepeticion && typeof data.fechaFinRepeticion !== 'string') {
       data.fechaFinRepeticion = (data.fechaFinRepeticion as Date).toISOString().slice(0, 10);
     }
+    if (!data.repetirTurno) {
+      data.fechaFinRepeticion = null;
+      if (Array.isArray(data.dias) && data.dias.length > 1) {
+        data.dias = [data.dias[0]];
+      }
+      if (data.fechaInicio) {
+        data.dias = [this.getDiaSemanaLocal(data.fechaInicio)];
+      }
+    }
     const horario = this.repository.create(data);
     return await this.repository.save(horario);
   }
@@ -65,6 +74,15 @@ export class HorarioService {
     }
     if (data.fechaFinRepeticion && typeof data.fechaFinRepeticion !== 'string') {
       data.fechaFinRepeticion = (data.fechaFinRepeticion as Date).toISOString().slice(0, 10);
+    }
+    if (!data.repetirTurno) {
+      data.fechaFinRepeticion = null;
+      if (Array.isArray(data.dias) && data.dias.length > 1) {
+        data.dias = [data.dias[0]];
+      }
+      if (data.fechaInicio) {
+        data.dias = [this.getDiaSemanaLocal(data.fechaInicio)];
+      }
     }
     this.repository.merge(horario, data);
     return await this.repository.save(horario);
@@ -136,5 +154,14 @@ export class HorarioService {
     }
 
     return horariosAdaptados;
+  }
+
+  private getDiaSemanaLocal(fechaStr: string): number {
+    // fechaStr debe ser 'YYYY-MM-DD'
+    const [anio, mes, dia] = fechaStr.split('-').map(Number);
+    // new Date(año, mesIndex, día) -> mesIndex inicia en 0
+    const fecha = new Date(anio, mes - 1, dia);
+    let diaSemana = fecha.getDay(); // 0=domingo, 1=lunes, ..., 6=sábado
+    return diaSemana === 0 ? 7 : diaSemana; // 7=domingo
   }
 } 

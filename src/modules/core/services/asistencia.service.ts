@@ -357,7 +357,7 @@ export class AsistenciaService {
     }
     const fechasAsistidas = asistenciasMes.map(a => a.fecha);
     const faltas = diasHabiles.filter(dia => !fechasAsistidas.includes(dia));
-    const atrasos = asistenciasMes.filter(a => a.estado === 'atraso').length;
+    const atrasos = asistenciasMes.filter(a => a.estado === 'atraso' || a.estado_salida === 'atraso').length;
     const asistenciaHoy = asistenciasMes.find(a => a.fecha === fechaHoy);
 
     const registroHoy = asistenciaHoy ? {
@@ -384,24 +384,71 @@ export class AsistenciaService {
     };
   }
 
-  async getHistorialAsistenciaUsuario(userId: string): Promise<any[]> {
-    const asistencias = await this.repository.find({
-      where: { userId },
-      order: { fecha: 'DESC', hora: 'ASC' }
-    });
+  async getHistorialAsistenciaUsuario(userId: string, mes?: string, anio?: string): Promise<any[]> {
+    const fechaActual = new Date();
+    const yyyy = anio || fechaActual.getFullYear();
+    const mm = mes || String(fechaActual.getMonth() + 1).padStart(2, '0');
+    const primerDiaMes = `${yyyy}-${mm}-01`;
+    const ultimoDiaMes = new Date(Number(yyyy), Number(mm), 0).getDate();
+    const ultimoDia = `${yyyy}-${mm}-${ultimoDiaMes}`;
 
-    return asistencias.map(a => ({
-      fecha: a.fecha,
-      hora_entrada: a.hora,
-      lat_entrada: a.lat,
-      lng_entrada: a.lng,
-      estado_entrada: a.estado,
-      motivo_entrada: a.motivo,
-      hora_salida: a.hora_salida,
-      lat_salida: a.lat_salida,
-      lng_salida: a.lng_salida,
-      estado_salida: a.estado_salida,
-      motivo_salida: a.motivo_salida,
-    }));
+    const asistencias = await this.repository.find({
+      where: {
+        userId,
+        fecha: Between(primerDiaMes, ultimoDia),
+      },
+      order: { fecha: 'ASC', hora: 'ASC' }
+    });
+    const horarios = await this.horarioRepository.find({ where: { userId } });
+
+    const historial: any[] = [];
+    for (let d = 1; d <= ultimoDiaMes; d++) {
+      const fecha = `${yyyy}-${mm}-${String(d).padStart(2, '0')}`;
+      const diaSemana = new Date(Number(yyyy), Number(mm) - 1, d).getDay() === 0 ? 7 : new Date(Number(yyyy), Number(mm) - 1, d).getDay();
+      for (const horario of horarios) {
+        if (horario.dias.includes(diaSemana)) {
+          const asistencia = asistencias.find(a => a.fecha === fecha && a.horarioId === horario.id);
+          if (asistencia) {
+            historial.push({
+              fecha: asistencia.fecha,
+              horario: `${horario.horaInicio} - ${horario.horaFin}`,
+              hora_entrada: asistencia.hora,
+              lat_entrada: asistencia.lat,
+              lng_entrada: asistencia.lng,
+              estado_entrada: asistencia.estado,
+              motivo_entrada: asistencia.motivo,
+              hora_salida: asistencia.hora_salida,
+              lat_salida: asistencia.lat_salida,
+              lng_salida: asistencia.lng_salida,
+              estado_salida: asistencia.estado_salida,
+              motivo_salida: asistencia.motivo_salida,
+            });
+          } else {
+            historial.push({
+              fecha,
+              horario: `${horario.horaInicio} - ${horario.horaFin}`,
+              hora_entrada: null,
+              lat_entrada: null,
+              lng_entrada: null,
+              estado_entrada: 'Sin marcación',
+              motivo_entrada: 'Falta injustificada',
+              hora_salida: null,
+              lat_salida: null,
+              lng_salida: null,
+              estado_salida: 'Sin marcación',
+              motivo_salida: 'Falta injustificada',
+            });
+          }
+        }
+      }
+    }
+    return historial;
+  }
+
+  async findByUserAndDate(userId: string, fecha: string) {
+    return await this.repository.find({
+      where: { userId, fecha },
+      order: { hora: 'ASC' },
+    });
   }
 }
