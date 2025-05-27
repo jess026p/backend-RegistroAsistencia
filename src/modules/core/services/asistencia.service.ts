@@ -37,7 +37,6 @@ function calcularEstadoYMotivoBackend(
 
   const inicioSalida = horaFin;
   const finSalida = new Date(horaFin.getTime() + toleranciaFinDespues * 60000);
-  const finAtrasoSalida = new Date(finSalida.getTime() + atrasoPermitido * 60000);
 
   const distancia = this.calcularDistancia(
     lat, lng,
@@ -60,11 +59,6 @@ function calcularEstadoYMotivoBackend(
       return dentroDeZona
         ? { estado: 'salida', motivo: 'Salida registrada en el rango permitido' }
         : { estado: 'fuera_de_zona', motivo: 'Salida fuera de la zona permitida' };
-    }
-    if (ahoraDate > finSalida && ahoraDate <= finAtrasoSalida) {
-      return dentroDeZona
-        ? { estado: 'atraso', motivo: 'Salida registrada con atraso' }
-        : { estado: 'fuera_de_zona', motivo: 'Salida fuera de la zona permitida (atraso)' };
     }
     return dentroDeZona
       ? { estado: 'presente', motivo: 'Marcó durante el horario vigente' }
@@ -130,41 +124,71 @@ export class AsistenciaService {
         horarioId: payload.horarioId,
       },
     });
-  
-    // 🔹 CASO 1: NO EXISTE REGISTRO AÚN (entrada)
+
+    // Permitir marcar salida aunque no haya entrada, pero solo en el rango de salida
+    if (!existe && estado === 'salida') {
+      const horaActual = new Date(`${payload.fecha}T${payload.hora}`);
+      const horaFin = new Date(`${payload.fecha}T${horario.horaFin}`);
+      const toleranciaFin = horario.toleranciaFinDespues || 0;
+      const inicioRangoSalida = new Date(horaFin.getTime() - toleranciaFin * 60000);
+      if (horaActual < inicioRangoSalida) {
+        throw new BadRequestException('No puedes marcar la salida antes del rango permitido');
+      }
+      // Registrar solo salida (sin entrada)
+      const asistencia = this.repository.create({
+        userId: payload.userId,
+        horarioId: payload.horarioId,
+        fecha: payload.fecha,
+        hora: null,
+        lat: null,
+        lng: null,
+        estado: 'sin_entrada',
+        motivo: 'No se registró entrada',
+        hora_salida: payload.hora,
+        lat_salida: payload.lat,
+        lng_salida: payload.lng,
+        estado_salida: estado,
+        motivo_salida: motivo,
+        tiempo_total: null,
+      });
+      return await this.repository.save(asistencia);
+    }
+
+    // CASO 1: NO EXISTE REGISTRO AÚN (entrada)
     if (!existe) {
       if (estado === 'salida') {
+        // Ya manejado arriba
         throw new BadRequestException('Debes marcar la entrada antes de poder registrar la salida.');
       }
-  
       // ✅ permitir entrada incluso si está fuera de la zona
       const estadosEntradaPermitidos = ['entrada', 'atraso', 'fuera_de_zona'];
-  
       if (!estadosEntradaPermitidos.includes(estado)) {
         throw new BadRequestException('Solo puedes registrar la entrada en este momento');
       }
-  
       const asistencia = this.repository.create({
         ...payload,
         estado,
         motivo,
       });
-  
       return await this.repository.save(asistencia);
     }
-  
-    // 🔹 CASO 2: YA EXISTE REGISTRO, MARCAR SALIDA
+
+    // CASO 2: YA EXISTE REGISTRO, MARCAR SALIDA
     if (existe.hora_salida) {
       throw new BadRequestException('Ya has registrado tu salida para este horario');
     }
-  
     const estadosSalidaPermitidos = ['salida', 'fuera_de_zona'];
-
     if (!estadosSalidaPermitidos.includes(estado)) {
       throw new BadRequestException('Solo puedes registrar la salida en este momento');
     }
-    
-  
+    // Solo permitir salida si la hora actual >= hora de salida - tolerancia
+    const horaActual = new Date(`${payload.fecha}T${payload.hora}`);
+    const horaFin = new Date(`${payload.fecha}T${horario.horaFin}`);
+    const toleranciaFin = horario.toleranciaFinDespues || 0;
+    const inicioRangoSalida = new Date(horaFin.getTime() - toleranciaFin * 60000);
+    if (horaActual < inicioRangoSalida) {
+      throw new BadRequestException('No puedes marcar la salida antes del rango permitido');
+    }
     // Calcular tiempo total
     const horaEntrada = new Date(`${payload.fecha}T${existe.hora}`);
     const horaSalida = new Date(`${payload.fecha}T${payload.hora}`);
@@ -172,14 +196,12 @@ export class AsistenciaService {
     const horas = Math.floor(tiempoTotal / (1000 * 60 * 60));
     const minutos = Math.floor((tiempoTotal % (1000 * 60 * 60)) / (1000 * 60));
     const tiempoTotalStr = `${horas}:${minutos.toString().padStart(2, '0')}:00`;
-  
     existe.hora_salida = payload.hora;
     existe.lat_salida = payload.lat;
     existe.lng_salida = payload.lng;
     existe.estado_salida = estado;
     existe.motivo_salida = motivo;
     existe.tiempo_total = tiempoTotalStr;
-  
     return await this.repository.save(existe);
   }
   
@@ -341,8 +363,6 @@ export class AsistenciaService {
       },
       order: { fecha: 'ASC', hora: 'ASC' },
     });
-
-    const diasLaborados = new Set(asistenciasMes.map(a => a.fecha)).size;
     const horarios = await this.horarioRepository.find({ where: { userId } });
     const diasHabiles: string[] = [];
     for (let d = 1; d <= ultimoDiaMes; d++) {
@@ -355,32 +375,50 @@ export class AsistenciaService {
         }
       }
     }
-    const fechasAsistidas = asistenciasMes.map(a => a.fecha);
-    const faltas = diasHabiles.filter(dia => !fechasAsistidas.includes(dia));
+    const fechasAsistidas = new Set(asistenciasMes.map(a => a.fecha));
+    const faltas = diasHabiles.filter(dia => !fechasAsistidas.has(dia));
     const atrasos = asistenciasMes.filter(a => a.estado === 'atraso' || a.estado_salida === 'atraso').length;
-    const asistenciaHoy = asistenciasMes.find(a => a.fecha === fechaHoy);
 
-    const registroHoy = asistenciaHoy ? {
-      fecha: asistenciaHoy.fecha,
-      estado: asistenciaHoy.estado,
-      motivo: asistenciaHoy.motivo,
-      hora_entrada: asistenciaHoy.hora,
-      lat_entrada: asistenciaHoy.lat,
-      lng_entrada: asistenciaHoy.lng,
-      estado_entrada: asistenciaHoy.estado,
-      motivo_entrada: asistenciaHoy.motivo,
-      hora_salida: asistenciaHoy.hora_salida,
-      lat_salida: asistenciaHoy.lat_salida,
-      lng_salida: asistenciaHoy.lng_salida,
-      estado_salida: asistenciaHoy.estado_salida,
-      motivo_salida: asistenciaHoy.motivo_salida,
-    } : null;
+    // --- RESUMEN DE HOY ---
+    // Buscar todas las asistencias de hoy para el usuario
+    const asistenciasHoy = asistenciasMes.filter(a => a.fecha === fechaHoy);
+    // Tomar la marcación con la hora_salida más reciente, o la de entrada más reciente si no hay salida
+    let registroHoyCalculado = null;
+    if (asistenciasHoy.length > 0) {
+      // Ordenar primero por hora_salida descendente, luego por hora descendente
+      asistenciasHoy.sort((a, b) => {
+        if (b.hora_salida && a.hora_salida) {
+          return b.hora_salida.localeCompare(a.hora_salida);
+        } else if (b.hora_salida) {
+          return 1;
+        } else if (a.hora_salida) {
+          return -1;
+        } else {
+          return b.hora.localeCompare(a.hora);
+        }
+      });
+      const asistencia = asistenciasHoy[0];
+      registroHoyCalculado = {
+        fecha: asistencia.fecha,
+        horario: `${asistencia.hora} - ${asistencia.hora_salida || ''}`,
+        hora_entrada: asistencia.hora,
+        lat_entrada: asistencia.lat,
+        lng_entrada: asistencia.lng,
+        estado_entrada: asistencia.estado,
+        motivo_entrada: asistencia.motivo,
+        hora_salida: asistencia.hora_salida,
+        lat_salida: asistencia.lat_salida,
+        lng_salida: asistencia.lng_salida,
+        estado_salida: asistencia.estado_salida,
+        motivo_salida: asistencia.motivo_salida,
+      };
+    }
 
     return {
-      dias_laborados: diasLaborados,
+      dias_laborados: fechasAsistidas.size,
       faltas_sin_justificacion: faltas.length,
       atrasos: atrasos,
-      registro_hoy: registroHoy,
+      registro_hoy: registroHoyCalculado,
     };
   }
 
@@ -397,7 +435,7 @@ export class AsistenciaService {
         userId,
         fecha: Between(primerDiaMes, ultimoDia),
       },
-      order: { fecha: 'ASC', hora: 'ASC' }
+      order: { fecha: 'ASC', hora: 'ASC' },
     });
     const horarios = await this.horarioRepository.find({ where: { userId } });
 
@@ -405,40 +443,41 @@ export class AsistenciaService {
     for (let d = 1; d <= ultimoDiaMes; d++) {
       const fecha = `${yyyy}-${mm}-${String(d).padStart(2, '0')}`;
       const diaSemana = new Date(Number(yyyy), Number(mm) - 1, d).getDay() === 0 ? 7 : new Date(Number(yyyy), Number(mm) - 1, d).getDay();
-      for (const horario of horarios) {
-        if (horario.dias.includes(diaSemana)) {
-          const asistencia = asistencias.find(a => a.fecha === fecha && a.horarioId === horario.id);
-          if (asistencia) {
-            historial.push({
-              fecha: asistencia.fecha,
-              horario: `${horario.horaInicio} - ${horario.horaFin}`,
-              hora_entrada: asistencia.hora,
-              lat_entrada: asistencia.lat,
-              lng_entrada: asistencia.lng,
-              estado_entrada: asistencia.estado,
-              motivo_entrada: asistencia.motivo,
-              hora_salida: asistencia.hora_salida,
-              lat_salida: asistencia.lat_salida,
-              lng_salida: asistencia.lng_salida,
-              estado_salida: asistencia.estado_salida,
-              motivo_salida: asistencia.motivo_salida,
-            });
-          } else {
-            historial.push({
-              fecha,
-              horario: `${horario.horaInicio} - ${horario.horaFin}`,
-              hora_entrada: null,
-              lat_entrada: null,
-              lng_entrada: null,
-              estado_entrada: 'Sin marcación',
-              motivo_entrada: 'Falta injustificada',
-              hora_salida: null,
-              lat_salida: null,
-              lng_salida: null,
-              estado_salida: 'Sin marcación',
-              motivo_salida: 'Falta injustificada',
-            });
-          }
+      // Solo incluir días que tengan al menos un horario asignado
+      const horariosDelDia = horarios.filter(horario => horario.dias.includes(diaSemana));
+      if (horariosDelDia.length === 0) continue;
+      for (const horario of horariosDelDia) {
+        const asistencia = asistencias.find(a => a.fecha === fecha && a.horarioId === horario.id);
+        if (asistencia) {
+          historial.push({
+            fecha: asistencia.fecha,
+            horario: `${horario.horaInicio} - ${horario.horaFin}`,
+            hora_entrada: asistencia.hora,
+            lat_entrada: asistencia.lat,
+            lng_entrada: asistencia.lng,
+            estado_entrada: asistencia.estado,
+            motivo_entrada: asistencia.motivo,
+            hora_salida: asistencia.hora_salida,
+            lat_salida: asistencia.lat_salida,
+            lng_salida: asistencia.lng_salida,
+            estado_salida: asistencia.estado_salida,
+            motivo_salida: asistencia.motivo_salida,
+          });
+        } else {
+          historial.push({
+            fecha,
+            horario: `${horario.horaInicio} - ${horario.horaFin}`,
+            hora_entrada: null,
+            lat_entrada: null,
+            lng_entrada: null,
+            estado_entrada: 'Sin marcación',
+            motivo_entrada: 'Falta injustificada',
+            hora_salida: null,
+            lat_salida: null,
+            lng_salida: null,
+            estado_salida: 'Sin marcación',
+            motivo_salida: 'Falta injustificada',
+          });
         }
       }
     }
