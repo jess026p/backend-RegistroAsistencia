@@ -183,27 +183,6 @@ export class AuthController {
     };
   }
 
-  @ApiOperation({ summary: 'Upload Avatar' })
-  @Post(':id/avatar')
-  @UseInterceptors(
-    FileInterceptor('avatar', {
-      storage: diskStorage({
-        destination: join(process.cwd(), 'assets/avatars'),
-        filename: getFileName,
-      }),
-      fileFilter: imageFilter,
-      limits: { fieldSize: 1 },
-    }),
-  )
-  async uploadAvatar(@UploadedFile() avatar: Express.Multer.File, @Param('id', ParseUUIDPipe) id: string): Promise<ResponseHttpModel> {
-    const response = await this.authService.uploadAvatar(avatar, id);
-    return {
-      data: response,
-      message: 'Imagen Subida Correctamente',
-      title: 'Imagen Subida',
-    };
-  }
-
   @ApiOperation({ summary: 'Perfil de usuario autenticado' })
   @Get('profile')
   @HttpCode(HttpStatus.OK)
@@ -213,6 +192,17 @@ export class AuthController {
       data: userProfile,
       message: 'Perfil de usuario',
       title: 'Perfil',
+    };
+  }
+
+  @Put('profile/avatar')
+  @UseInterceptors(FileInterceptor('avatar'))
+  async uploadAvatar(@User() user: UserEntity, @UploadedFile() file: Express.Multer.File) {
+    const data = await this.authService.uploadAvatar(user.id, file);
+    return {
+      data,
+      message: 'Avatar actualizado',
+      title: 'Actualizado',
     };
   }
 }

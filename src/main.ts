@@ -38,7 +38,8 @@ async function bootstrap() {
 
   SwaggerModule.setup("docs", app, document);
 
-  await app.listen(process.env.PORT || 3000);
+   await app.listen(process.env.PORT || 3000); // Línea original solo para localhost
+  //await app.listen(process.env.PORT || 3000, '10.163.94.191'); // Para pruebas en el celular, escuchar en todas las interfaces
 }
 
 bootstrap();

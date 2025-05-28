@@ -24,6 +24,7 @@ import { ConfigType } from '@nestjs/config';
 import { MailDataInterface } from '../../common/interfaces/mail-data.interface';
 import { UsersService } from './users.service';
 import { PasswordChangeFirstDto } from '../dto/auth/password-change-first.dto';
+import * as path from 'path';
 
 @Injectable()
 export class AuthService {
@@ -342,21 +343,24 @@ export class AuthService {
     return { data: true };
   }
 
-  async uploadAvatar(file: Express.Multer.File, id: string): Promise<UserEntity> {
-    const entity = await this.repository.findOneBy({ id });
-
-    if (entity?.avatar) {
-      try {
-        fs.unlinkSync(join(process.cwd(), 'assets', entity.avatar));
-      } catch (err) {
-        console.error('Something wrong happened removing the file', err);
-      }
+  async uploadAvatar(userId: string, file: Express.Multer.File): Promise<any> {
+    if (!file) throw new NotFoundException('No se subió ningún archivo');
+    // Crear carpeta si no existe
+    const uploadDir = path.join(process.cwd(), 'uploads', 'avatars');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
-    entity.avatar = `avatars/${file.filename}`;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password, ...restEntity } = entity;
-
-    return await this.repository.save({ ...restEntity });
+    // Guardar archivo
+    const ext = path.extname(file.originalname);
+    const fileName = `${userId}_${Date.now()}${ext}`;
+    const filePath = path.join(uploadDir, fileName);
+    fs.writeFileSync(filePath, file.buffer);
+    // Guardar ruta relativa en la base de datos
+    const user = await this.repository.findOneBy({ id: userId });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    user.avatar = `/uploads/avatars/${fileName}`;
+    await this.repository.save(user);
+    return { avatar: user.avatar };
   }
 
   private async generateJwt(user: UserEntity): Promise<string> {
