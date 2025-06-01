@@ -20,20 +20,8 @@ export class HorarioService {
     if (data.fechaInicio && typeof data.fechaInicio !== 'string') {
       data.fechaInicio = (data.fechaInicio as Date).toISOString().slice(0, 10);
     }
-    if (data.fechaFin && typeof data.fechaFin !== 'string') {
-      data.fechaFin = (data.fechaFin as Date).toISOString().slice(0, 10);
-    }
     if (data.fechaFinRepeticion && typeof data.fechaFinRepeticion !== 'string') {
       data.fechaFinRepeticion = (data.fechaFinRepeticion as Date).toISOString().slice(0, 10);
-    }
-    if (!data.repetirTurno) {
-      data.fechaFinRepeticion = null;
-      if (Array.isArray(data.dias) && data.dias.length > 1) {
-        data.dias = [data.dias[0]];
-      }
-      if (data.fechaInicio) {
-        data.dias = [this.getDiaSemanaLocal(data.fechaInicio)];
-      }
     }
     const horario = this.repository.create(data);
     return await this.repository.save(horario);
@@ -69,20 +57,8 @@ export class HorarioService {
     if (data.fechaInicio && typeof data.fechaInicio !== 'string') {
       data.fechaInicio = (data.fechaInicio as Date).toISOString().slice(0, 10);
     }
-    if (data.fechaFin && typeof data.fechaFin !== 'string') {
-      data.fechaFin = (data.fechaFin as Date).toISOString().slice(0, 10);
-    }
     if (data.fechaFinRepeticion && typeof data.fechaFinRepeticion !== 'string') {
       data.fechaFinRepeticion = (data.fechaFinRepeticion as Date).toISOString().slice(0, 10);
-    }
-    if (!data.repetirTurno) {
-      data.fechaFinRepeticion = null;
-      if (Array.isArray(data.dias) && data.dias.length > 1) {
-        data.dias = [data.dias[0]];
-      }
-      if (data.fechaInicio) {
-        data.dias = [this.getDiaSemanaLocal(data.fechaInicio)];
-      }
     }
     this.repository.merge(horario, data);
     return await this.repository.save(horario);

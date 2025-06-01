@@ -87,8 +87,14 @@ export class AsistenciaService {
     const horario = await this.horarioRepository.findOne({ where: { id: payload.horarioId } });
     if (!horario) throw new NotFoundException('Horario no encontrado');
   
-    if (horario.fechaFinRepeticion && payload.fecha > horario.fechaFinRepeticion) {
-      throw new BadRequestException('No puedes marcar fuera del rango de repetición del turno');
+    // Validar que la fecha de marcación esté dentro del rango de fechas del horario
+    const fechaInicioTurno = horario.fechaInicio; // Usar solo fechaInicio
+    const fechaFinRepeticion = horario.fechaFinRepeticion;
+    if (fechaInicioTurno && payload.fecha < fechaInicioTurno) {
+      throw new BadRequestException('No puedes marcar antes de la fecha de inicio del turno');
+    }
+    if (fechaFinRepeticion && payload.fecha > fechaFinRepeticion) {
+      throw new BadRequestException('No puedes marcar después de la fecha de fin de repetición del turno');
     }
   
     // Validar día de la semana
@@ -132,46 +138,13 @@ export class AsistenciaService {
       },
     });
 
-    // Permitir marcar salida aunque no haya entrada, pero solo en el rango de salida
+    // NO permitir marcar salida si no hay entrada registrada
     if (!existe && estado === 'salida') {
-      const horaActual = new Date(`${payload.fecha}T${payload.hora}`);
-      const horaFin = new Date(`${payload.fecha}T${horario.horaFin}`);
-      const toleranciaFin = horario.toleranciaFinDespues || 0;
-      const inicioRangoSalida = new Date(horaFin.getTime() - toleranciaFin * 60000);
-      if (horaActual < inicioRangoSalida) {
-        throw new BadRequestException('No puedes marcar la salida antes del rango permitido');
-      }
-      // Registrar solo salida (sin entrada)
-      const asistencia = this.repository.create({
-        userId: payload.userId,
-        horarioId: payload.horarioId,
-        fecha: payload.fecha,
-        hora: null,
-        lat: null,
-        lng: null,
-        estado: 'sin_entrada',
-        motivo: 'No se registró entrada',
-        hora_salida: payload.hora,
-        lat_salida: payload.lat,
-        lng_salida: payload.lng,
-        estado_salida: estado,
-        motivo_salida: motivo,
-        tiempo_total: null,
-      });
-      const savedAsistencia = await this.repository.save(asistencia);
-      await this.notificacionRepository.save({
-        userId: payload.userId,
-        mensaje: `✅ Asistencia registrada con éxito a las ${payload.hora}`
-      });
-      return savedAsistencia;
+      throw new BadRequestException('Debes marcar la entrada antes de poder registrar la salida.');
     }
 
     // CASO 1: NO EXISTE REGISTRO AÚN (entrada)
     if (!existe) {
-      if (estado === 'salida') {
-        // Ya manejado arriba
-        throw new BadRequestException('Debes marcar la entrada antes de poder registrar la salida.');
-      }
       // ✅ permitir entrada incluso si está fuera de la zona
       const estadosEntradaPermitidos = ['entrada', 'atraso', 'fuera_de_zona'];
       if (!estadosEntradaPermitidos.includes(estado)) {
@@ -183,10 +156,10 @@ export class AsistenciaService {
         motivo,
       });
       const savedAsistencia = await this.repository.save(asistencia);
-      await this.notificacionRepository.save({
-        userId: payload.userId,
-        mensaje: `✅ Asistencia registrada con éxito a las ${payload.hora}`
-      });
+      // await this.notificacionRepository.save({
+      //   userId: payload.userId,
+      //   mensaje: `✅ Asistencia registrada con éxito a las ${payload.hora}`
+      // });
       return savedAsistencia;
     }
 
@@ -198,14 +171,7 @@ export class AsistenciaService {
     if (!estadosSalidaPermitidos.includes(estado)) {
       throw new BadRequestException('Solo puedes registrar la salida en este momento');
     }
-    // Solo permitir salida si la hora actual >= hora de salida - tolerancia
-    const horaActual = new Date(`${payload.fecha}T${payload.hora}`);
-    const horaFin = new Date(`${payload.fecha}T${horario.horaFin}`);
-    const toleranciaFin = horario.toleranciaFinDespues || 0;
-    const inicioRangoSalida = new Date(horaFin.getTime() - toleranciaFin * 60000);
-    if (horaActual < inicioRangoSalida) {
-      throw new BadRequestException('No puedes marcar la salida antes del rango permitido');
-    }
+    // Eliminar la restricción de tolerancia para salida: permitir marcar salida aunque se pase del tiempo de tolerancia
     // Calcular tiempo total
     const horaEntrada = new Date(`${payload.fecha}T${existe.hora}`);
     const horaSalida = new Date(`${payload.fecha}T${payload.hora}`);
@@ -220,10 +186,10 @@ export class AsistenciaService {
     existe.motivo_salida = motivo;
     existe.tiempo_total = tiempoTotalStr;
     const savedAsistencia = await this.repository.save(existe);
-    await this.notificacionRepository.save({
-      userId: payload.userId,
-      mensaje: `✅ Asistencia registrada con éxito a las ${payload.hora}`
-    });
+    // await this.notificacionRepository.save({
+    //   userId: payload.userId,
+    //   mensaje: `✅ Asistencia registrada con éxito a las ${payload.hora}`
+    // });
     return savedAsistencia;
   }
   
@@ -272,17 +238,32 @@ export class AsistenciaService {
     const horarios = await this.horarioRepository.find({ where: { userId: usuario.id } });
   
     const diasHabiles: string[] = [];
-    for (let d = 1; d <= fechaActual.getDate(); d++) {
-      const fecha = new Date(yyyy, fechaActual.getMonth(), d);
+    const ultimoDiaMes = new Date(Number(yyyy), Number(mm), 0).getDate();
+    for (let d = 1; d <= ultimoDiaMes; d++) {
+      const mesIndex = Number(mm) - 1;
+      const fecha = new Date(Number(yyyy), mesIndex, d);
+      const fechaYMD = fechaToYMD(fecha);
       const diaSemana = fecha.getDay() === 0 ? 7 : fecha.getDay();
       for (const horario of horarios) {
-        if (horario.dias.includes(diaSemana)) {
-          diasHabiles.push(`${yyyy}-${mm}-${String(d).padStart(2, '0')}`);
-          break;
+        const inicioYMD = horario.fechaInicio ? fechaToYMD(new Date(horario.fechaInicio)) : null;
+        const finRepeticionYMD = horario.fechaFinRepeticion ? fechaToYMD(new Date(horario.fechaFinRepeticion)) : null;
+        if (typeof horario.dias === 'string' && horario.dias) {
+          const diasArray = (horario.dias as string).split(',').map(d => Number(d.trim())).filter(n => !isNaN(n));
+          const enRango = (!inicioYMD || fechaYMD >= inicioYMD) && (!finRepeticionYMD || fechaYMD <= finRepeticionYMD);
+          if (diasArray.includes(diaSemana) && enRango) {
+            diasHabiles.push(`${yyyy}-${mm}-${String(d).padStart(2, '0')}`);
+            break;
+          }
+        } else if (Array.isArray(horario.dias)) {
+          const enRango = (!inicioYMD || fechaYMD >= inicioYMD) && (!finRepeticionYMD || fechaYMD <= finRepeticionYMD);
+          if (horario.dias.includes(diaSemana) && enRango) {
+            diasHabiles.push(`${yyyy}-${mm}-${String(d).padStart(2, '0')}`);
+            break;
+          }
         }
       }
     }
-  
+
     const fechasAsistidas = asistencias.map(a => a.fecha);
     const faltas = diasHabiles.filter(d => !fechasAsistidas.includes(d));
     const atrasos = asistencias.filter(a => a.estado === 'atraso').length;
@@ -319,10 +300,6 @@ export class AsistenciaService {
     };
   }
   
-
-
-
-
   calcularDistancia(lat1: number, lon1: number, lat2: number, lon2: number): number {
       const R = 6371e3;
     const φ1 = lat1 * Math.PI / 180;
@@ -371,8 +348,17 @@ export class AsistenciaService {
     
   async getResumenAsistenciaUsuario(userId: string, mes?: string, anio?: string): Promise<any> {
     const fechaActual = new Date();
+    const mm = mes ? String(mes).padStart(2, '0') : String(fechaActual.getMonth() + 1).padStart(2, '0');
     const yyyy = anio || fechaActual.getFullYear();
-    const mm = mes || String(fechaActual.getMonth() + 1).padStart(2, '0');
+    const mesNum = Number(mm);
+    const anioNum = Number(yyyy);
+    console.log('Mes recibido:', mes, 'mm:', mm, 'mesNum:', mesNum, 'Año recibido:', anio, 'yyyy:', yyyy, 'anioNum:', anioNum);
+    if (!mes || isNaN(mesNum) || mesNum < 1 || mesNum > 12) {
+      throw new BadRequestException('Mes inválido');
+    }
+    if (!anio || isNaN(anioNum) || anioNum < 2000 || anioNum > 3000) {
+      throw new BadRequestException('Año inválido');
+    }
     const dd = String(fechaActual.getDate()).padStart(2, '0');
     const fechaHoy = `${yyyy}-${mm}-${dd}`;
 
@@ -429,22 +415,51 @@ export class AsistenciaService {
       where: { userId, fecha: Between(primerDiaMes, ultimoDia) },
       order: { fecha: 'ASC', hora: 'ASC' },
     });
-    const fechasAsistidas = new Set(asistenciasMes.map(a => a.fecha));
-    const diasHabiles: string[] = [];
+    const fechasAsistidas = new Set(asistenciasMes.map(a => a.fecha + '|' + a.horarioId));
+    const diasHabiles: { fecha: string, horario: any }[] = [];
+    const hoy = new Date();
+    const hoyYMD = fechaToYMD(hoy);
+    const horaActual = hoy.toTimeString().slice(0, 5);
     for (let d = 1; d <= ultimoDiaMes; d++) {
-      const fecha = new Date(Number(yyyy), Number(mm) - 1, d);
+      const mesIndex = Number(mm) - 1;
+      const fecha = new Date(Number(yyyy), mesIndex, d);
+      const fechaYMD = fechaToYMD(fecha);
       const diaSemana = fecha.getDay() === 0 ? 7 : fecha.getDay();
       for (const horario of horarios) {
-        if (horario.dias.includes(diaSemana)) {
-          diasHabiles.push(`${yyyy}-${mm}-${String(d).padStart(2, '0')}`);
-          break;
+        const inicioYMD = horario.fechaInicio ? fechaToYMD(new Date(horario.fechaInicio)) : null;
+        const finRepeticionYMD = horario.fechaFinRepeticion ? fechaToYMD(new Date(horario.fechaFinRepeticion)) : null;
+        if (typeof horario.dias === 'string' && horario.dias) {
+          const diasArray = (horario.dias as string).split(',').map(d => Number(d.trim())).filter(n => !isNaN(n));
+          const enRango = (!inicioYMD || fechaYMD >= inicioYMD) && (!finRepeticionYMD || fechaYMD <= finRepeticionYMD);
+          if (diasArray.includes(diaSemana) && enRango) {
+            diasHabiles.push({ fecha: fechaYMD, horario });
+            break;
+          }
+        } else if (Array.isArray(horario.dias)) {
+          const enRango = (!inicioYMD || fechaYMD >= inicioYMD) && (!finRepeticionYMD || fechaYMD <= finRepeticionYMD);
+          if (horario.dias.includes(diaSemana) && enRango) {
+            diasHabiles.push({ fecha: fechaYMD, horario });
+            break;
+          }
         }
       }
     }
-    const faltas = diasHabiles.filter(dia => !fechasAsistidas.has(dia));
+    // Solo contar como falta los días hábiles anteriores a hoy, o si es hoy y la hora de fin ya pasó
+    const faltas = diasHabiles.filter(({ fecha, horario }) => {
+      const key = fecha + '|' + horario.id;
+      if (fechasAsistidas.has(key)) return false;
+      if (fecha < hoyYMD) return true;
+      if (fecha === hoyYMD) {
+        // Si la hora de fin ya pasó
+        return horario.horaFin < horaActual;
+      }
+      return false;
+    });
     const atrasos = asistenciasMes.filter(a => a.estado === 'atraso' || a.estado_salida === 'atraso').length;
 
     return {
+      mes: mm,
+      anio: yyyy,
       dias_laborados: fechasAsistidas.size,
       faltas_sin_justificacion: faltas.length,
       atrasos: atrasos,
@@ -454,55 +469,56 @@ export class AsistenciaService {
 
   async getHistorialAsistenciaUsuario(userId: string, mes?: string, anio?: string): Promise<any[]> {
     const fechaActual = new Date();
+    const mm = mes ? String(mes).padStart(2, '0') : String(fechaActual.getMonth() + 1).padStart(2, '0');
     const yyyy = anio || fechaActual.getFullYear();
-    const mm = mes || String(fechaActual.getMonth() + 1).padStart(2, '0');
+    const mesNum = Number(mm);
+    const anioNum = Number(yyyy);
+    console.log('Mes recibido:', mes, 'mm:', mm, 'mesNum:', mesNum, 'Año recibido:', anio, 'yyyy:', yyyy, 'anioNum:', anioNum);
+    if (!mes || isNaN(mesNum) || mesNum < 1 || mesNum > 12) {
+      throw new BadRequestException('Mes inválido');
+    }
+    if (!anio || isNaN(anioNum) || anioNum < 2000 || anioNum > 3000) {
+      throw new BadRequestException('Año inválido');
+    }
     const ultimoDiaMes = new Date(Number(yyyy), Number(mm), 0).getDate();
 
+    const primerDiaMes = `${yyyy}-${mm}-01`;
+    const ultimoDia = `${yyyy}-${mm}-${String(ultimoDiaMes).padStart(2, '0')}`;
+
+    // Obtener horarios que estén activos en el mes seleccionado
+    const horarios = await this.horarioRepository.find({ where: { userId } });
+    // Reforzar el filtro: solo horarios activos en el mes seleccionado
+    const horariosFiltrados = horarios.filter(horario => {
+      const inicioYMD = horario.fechaInicio ? fechaToYMD(new Date(horario.fechaInicio)) : null;
+      const finRepeticionYMD = horario.fechaFinRepeticion ? fechaToYMD(new Date(horario.fechaFinRepeticion)) : null;
+      // El horario debe estar activo en algún día del mes seleccionado
+      return (!inicioYMD || inicioYMD <= ultimoDia) && (!finRepeticionYMD || finRepeticionYMD >= primerDiaMes);
+    });
+
     const asistencias = await this.repository.find({
-      where: { userId },
+      where: { userId, fecha: Between(primerDiaMes, ultimoDia) },
       order: { fecha: 'ASC', hora: 'ASC' },
     });
-    const horarios = await this.horarioRepository.find({ where: { userId } });
-
-    // LOG de depuración: mostrar cómo vienen los horarios
-    console.log('Horarios del usuario:', horarios.map(h => ({
-      id: h.id,
-      nombre: h.nombreTurno,
-      fechaInicio: h.fechaInicio,
-      fechaFin: h.fechaFin,
-      dias: h.dias,
-      tipoDias: typeof h.dias,
-    })));
 
     const historial: any[] = [];
     for (let d = 1; d <= ultimoDiaMes; d++) {
-      const fecha = `${yyyy}-${mm}-${String(d).padStart(2, '0')}`;
-      const fechaDate = new Date(Number(yyyy), Number(mm) - 1, d);
-      const diaSemana = fechaDate.getDay() === 0 ? 7 : fechaDate.getDay();
-      // LOG de depuración: mostrar el día y el valor de diaSemana
-      console.log(`Evaluando día: ${fecha} (díaSemana: ${diaSemana})`);
-      // Filtrar horarios válidos para este día
-      const horariosDelDia = horarios.filter(horario => {
-        const inicio = horario.fechaInicio ? new Date(horario.fechaInicio) : null;
-        const fin = horario.fechaFin ? new Date(horario.fechaFin) : null;
-        // Asegurar que dias es array de números
+      const mesIndex = Number(mm) - 1;
+      const fecha = new Date(Number(yyyy), mesIndex, d);
+      const fechaYMD = fechaToYMD(fecha);
+      // Validar que la fecha generada corresponde exactamente al mes y año seleccionados
+      if (fecha.getFullYear() !== Number(yyyy) || fecha.getMonth() !== mesIndex) continue;
+      const diaSemana = fecha.getDay() === 0 ? 7 : fecha.getDay();
+      // Filtrar horarios válidos para este día (solo si el horario está activo en este día exacto)
+      const horariosDelDia = horariosFiltrados.filter(horario => {
+        const inicioYMD = horario.fechaInicio ? fechaToYMD(new Date(horario.fechaInicio)) : null;
+        const finRepeticionYMD = horario.fechaFinRepeticion ? fechaToYMD(new Date(horario.fechaFinRepeticion)) : null;
+        const enRango = (!inicioYMD || fechaYMD >= inicioYMD) && (!finRepeticionYMD || fechaYMD <= finRepeticionYMD);
         const diasHorario = Array.isArray(horario.dias) ? horario.dias.map(Number) : [];
-        const diaCoincide = diasHorario.includes(diaSemana);
-        const fechaYMD = fechaToYMD(fechaDate);
-        const inicioYMD = inicio ? fechaToYMD(inicio) : null;
-        const finYMD = fin ? fechaToYMD(fin) : null;
-        const enRango = (!inicioYMD || fechaYMD >= inicioYMD) && (!finYMD || fechaYMD <= finYMD);
-        const esUnSoloDia = inicioYMD && finYMD && inicioYMD === finYMD;
-        if (esUnSoloDia) {
-          return fechaYMD === inicioYMD && diaCoincide;
-        }
-        return enRango && diaCoincide;
+        return enRango && diasHorario.includes(diaSemana);
       });
-      // LOG de depuración
-      console.log('Horarios asignados para este día:', horariosDelDia.map(h => ({ id: h.id, nombre: h.nombreTurno, fechaInicio: h.fechaInicio, fechaFin: h.fechaFin, dias: h.dias })));
       if (horariosDelDia.length === 0) continue;
       for (const horario of horariosDelDia) {
-        const asistenciasDeEseHorario = asistencias.filter(a => a.fecha === fecha && a.horarioId === horario.id);
+        const asistenciasDeEseHorario = asistencias.filter(a => a.fecha === fechaYMD && a.horarioId === horario.id);
         let asistencia: any = null;
         if (asistenciasDeEseHorario.length > 0) {
           asistenciasDeEseHorario.sort((a, b) => {
@@ -518,9 +534,6 @@ export class AsistenciaService {
           });
           asistencia = asistenciasDeEseHorario[0];
         }
-        // LOG de depuración
-        console.log(`  Horario: ${horario.horaInicio} - ${horario.horaFin}`);
-        console.log('  Asistencias encontradas:', asistenciasDeEseHorario);
         if (asistencia) {
           historial.push({
             fecha: asistencia.fecha,
@@ -538,7 +551,7 @@ export class AsistenciaService {
           });
         } else {
           historial.push({
-            fecha,
+            fecha: fechaYMD,
             horario: `${horario.horaInicio} - ${horario.horaFin}`,
             hora_entrada: null,
             lat_entrada: null,

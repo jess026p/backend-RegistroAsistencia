@@ -62,3 +62,19 @@ export class CreateAsistenciaDto {
   @IsString()
   motivo_salida?: string;
 }
+
+export class ResumenAsistenciaDto {
+  registro_hoy: {
+    entrada: number;
+    salida: number;
+    atrasos: number;
+    fuera_zona: number;
+  };
+  resumen_mes: {
+    total_dias: number;
+    dias_asistidos: number;
+    dias_faltados: number;
+    atrasos: number;
+    fuera_zona: number;
+  };
+}
