@@ -265,4 +265,18 @@ export class UsersService {
 
     return await this.repository.save(user);
   }
+
+  async enable(id: string): Promise<UserEntity> {
+    const user = await this.repository.findOne({ where: { id } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    user.enabled = true;
+    return await this.repository.save(user);
+  }
+
+  async disable(id: string): Promise<UserEntity> {
+    const user = await this.repository.findOne({ where: { id } });
+    if (!user) throw new NotFoundException('Usuario no encontrado');
+    user.enabled = false;
+    return await this.repository.save(user);
+  }
 }

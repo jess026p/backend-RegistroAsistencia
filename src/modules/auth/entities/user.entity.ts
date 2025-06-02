@@ -273,6 +273,14 @@ export class UserEntity {
   })
   username: string;
 
+  @Column({
+    name: 'enabled',
+    type: 'boolean',
+    default: true,
+    comment: 'Indica si el usuario está habilitado para acceder al sistema',
+  })
+  enabled: boolean;
+
   /** Before Actions **/
   @BeforeInsert()
   @BeforeUpdate()

@@ -121,6 +121,7 @@ export class AuthService {
         phone: true,
         avatar: true,
         passwordChanged: true,
+        enabled: true,
       },
       where: {
         username: payload.username,
@@ -139,6 +140,13 @@ export class AuthService {
       throw new UnauthorizedException({
         error: 'Cuenta Suspendida',
         message: 'Su usuario se encuentra suspendido',
+      });
+
+    console.log('Valor de enabled para', user.username, ':', user.enabled);
+    if (!user.enabled)
+      throw new UnauthorizedException({
+        error: 'Cuenta deshabilitada',
+        message: 'Su usuario está deshabilitado. Contacte al administrador.',
       });
 
     const isValidPassword = await this.checkPassword(payload.password, user);

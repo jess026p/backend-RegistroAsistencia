@@ -154,4 +154,26 @@ export class UsersController {
       title: 'Éxito',
     };
   }
+
+  @Patch(':id/enable')
+  @HttpCode(HttpStatus.OK)
+  async enable(@Param('id', ParseUUIDPipe) id: string): Promise<ResponseHttpModel> {
+    const user = await this.usersService.enable(id);
+    return {
+      data: user,
+      message: 'Usuario habilitado',
+      title: 'Habilitado',
+    };
+  }
+
+  @Patch(':id/disable')
+  @HttpCode(HttpStatus.OK)
+  async disable(@Param('id', ParseUUIDPipe) id: string): Promise<ResponseHttpModel> {
+    const user = await this.usersService.disable(id);
+    return {
+      data: user,
+      message: 'Usuario deshabilitado',
+      title: 'Deshabilitado',
+    };
+  }
 }
