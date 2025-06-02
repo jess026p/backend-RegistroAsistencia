@@ -37,6 +37,12 @@ export class UsersService {
     if (typeof newUser.gender === 'string') newUser.gender = undefined;
     if (typeof newUser.identificationType === 'string') newUser.identificationType = undefined;
 
+    if (payload.role_id) {
+      const role = await this.roleRepository.findOne({ where: { id: payload.role_id } });
+      if (!role) throw new NotFoundException('Rol no encontrado');
+      newUser.roles = [role];
+    }
+
     console.log('Usuario a guardar (create):', newUser);
 
     const savedUser = await this.repository.save(newUser);
@@ -47,6 +53,7 @@ export class UsersService {
       relations: {
         identificationType: true,
         gender: true,
+        roles: true,
       },
     });
   }
@@ -145,6 +152,7 @@ export class UsersService {
     return await this.repository.findOne({
       where: { id },
       relations: {
+        roles: true,
         identificationType: true,
         gender: true,
       },

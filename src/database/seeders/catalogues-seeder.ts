@@ -443,17 +443,9 @@ export class CataloguesSeeder {
       },
       {
         code: '2',
-        description: 'tipo de identificacion',
+        description: 'genero',
         name: 'Femenino',
         sort: 2,
-        state: CatalogueStateEnum.ENABLED,
-        type: CatalogueTypeEnum.GENDER,
-      },
-      {
-        code: '3',
-        description: '',
-        name: 'LGBTI',
-        sort: 3,
         state: CatalogueStateEnum.ENABLED,
         type: CatalogueTypeEnum.GENDER,
       },
