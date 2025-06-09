@@ -80,6 +80,7 @@ export class AuthService {
   }
 
   async changePasswordFirst(id: string, payload: PasswordChangeFirstDto): Promise<boolean> {
+    console.log('[SERVICIO] Cambio de contraseña primer login. id:', id, 'payload:', payload);
     const user = await this.repository.findOne({
       select: {
         id: true,
@@ -93,8 +94,10 @@ export class AuthService {
       },
       where: { id },
     });
+    console.log('[SERVICIO] Usuario encontrado:', user);
 
     if (!user) {
+      console.log('[SERVICIO] Usuario no encontrado para cambio de contraseña. Lanzando NotFoundException.');
       throw new NotFoundException('Usuario no encontrado para cambio de contraseña');
     }
 
@@ -102,6 +105,7 @@ export class AuthService {
       password: Bcrypt.hashSync(payload.passwordNew, 10),
       passwordChanged: true,
     });
+    console.log('[SERVICIO] Contraseña actualizada correctamente para el usuario:', user.id);
 
     return true;
   }

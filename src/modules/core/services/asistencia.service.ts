@@ -7,6 +7,7 @@ import { CoreRepositoryEnum } from 'src/shared/enums/core-repository.enum';
 import { Between } from 'typeorm';
 import { UserEntity } from 'src/modules/auth/entities/user.entity';
 import { ILike } from 'typeorm';
+import axios from 'axios';
 
 function calcularEstadoYMotivoBackend(
   ahora: string,
@@ -17,7 +18,6 @@ function calcularEstadoYMotivoBackend(
   const toleranciaAntes = horario.toleranciaInicioAntes || 0;
   const toleranciaDespues = horario.toleranciaInicioDespues || 0;
   const atrasoPermitido = horario.atrasoPermitido || 0;
-  const toleranciaFinDespues = horario.toleranciaFinDespues || 0;
 
   const hoyFecha = new Date().toISOString().slice(0, 10);
   const horaInicioStr = horario.horaInicio.slice(0,5);
@@ -30,13 +30,10 @@ function calcularEstadoYMotivoBackend(
   ahoraDate.setHours(h, m, 0, 0);
 
   const inicioRango = new Date(horaInicio.getTime() - toleranciaAntes * 60000);
-  const finRango = new Date(horaFin.getTime() + (toleranciaFinDespues + atrasoPermitido) * 60000);
+  const finRango = new Date(horaFin.getTime() + atrasoPermitido * 60000);
 
   const finPuntual = new Date(horaInicio.getTime() + toleranciaDespues * 60000);
   const finAtraso = new Date(finPuntual.getTime() + atrasoPermitido * 60000);
-
-  const inicioSalida = horaFin;
-  const finSalida = new Date(horaFin.getTime() + toleranciaFinDespues * 60000);
 
   const distancia = this.calcularDistancia(
     lat, lng,
@@ -44,25 +41,30 @@ function calcularEstadoYMotivoBackend(
   );
   const dentroDeZona = distancia <= (horario.radioUbicacion || 500);
 
+  // Para salida, solo permitir después de la hora de fin, y distinguir si está dentro o fuera de la zona
+  if (ahoraDate >= horaFin) {
+    if (dentroDeZona) {
+      return { estado: 'salida', motivo: 'Salida dentro de la zona asignada' };
+    } else {
+      return { estado: 'salida_fuera_de_zona', motivo: 'Salida fuera de la zona asignada' };
+    }
+  }
+
+  // Para entradas, mantener la lógica original pero con mensajes claros
   if (ahoraDate >= inicioRango && ahoraDate <= finRango) {
     if (ahoraDate >= inicioRango && ahoraDate <= finPuntual) {
       return dentroDeZona
-        ? { estado: 'entrada', motivo: 'Marcó en el rango permitido (puntual)' }
-        : { estado: 'fuera_de_zona', motivo: 'Marcó fuera de la zona permitida (puntual)' };
+        ? { estado: 'entrada', motivo: 'Entrada puntual dentro de la zona asignada' }
+        : { estado: 'fuera_de_zona', motivo: 'Entrada puntual fuera de la zona asignada' };
     }
     if (ahoraDate > finPuntual && ahoraDate <= finAtraso) {
       return dentroDeZona
-        ? { estado: 'atraso', motivo: 'Marcó en el rango de atraso' }
-        : { estado: 'fuera_de_zona', motivo: 'Marcó fuera de la zona permitida (atraso)' };
-    }
-    if (ahoraDate >= inicioSalida && ahoraDate <= finSalida) {
-      return dentroDeZona
-        ? { estado: 'salida', motivo: 'Salida registrada en el rango permitido' }
-        : { estado: 'fuera_de_zona', motivo: 'Salida fuera de la zona permitida' };
+        ? { estado: 'atraso', motivo: 'Entrada con atraso dentro de la zona asignada' }
+        : { estado: 'fuera_de_zona', motivo: 'Entrada con atraso fuera de la zona asignada' };
     }
     return dentroDeZona
-      ? { estado: 'presente', motivo: 'Marcó durante el horario vigente' }
-      : { estado: 'fuera_de_zona', motivo: 'Marcó fuera de la zona permitida (vigente)' };
+      ? { estado: 'presente', motivo: 'Marcó durante el horario vigente dentro de la zona asignada' }
+      : { estado: 'fuera_de_zona', motivo: 'Marcó durante el horario vigente fuera de la zona asignada' };
   }
 
   return { estado: 'fuera_de_rango', motivo: 'Fuera del rango permitido para marcar asistencia' };
@@ -71,6 +73,17 @@ function calcularEstadoYMotivoBackend(
 // Fuera de la clase
 function fechaToYMD(date: Date): string {
   return date.toISOString().slice(0, 10);
+}
+
+// Función para obtener dirección desde el backend usando Nominatim
+export async function getDireccionReverseGeocoding(lat: number, lng: number): Promise<any> {
+  const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+  const response = await axios.get(url, {
+    headers: {
+      'User-Agent': 'RegistroAsistencia/1.0 (tucorreo@dominio.com)'
+    }
+  });
+  return response.data;
 }
 
 @Injectable()
@@ -156,10 +169,6 @@ export class AsistenciaService {
         motivo,
       });
       const savedAsistencia = await this.repository.save(asistencia);
-      // await this.notificacionRepository.save({
-      //   userId: payload.userId,
-      //   mensaje: `✅ Asistencia registrada con éxito a las ${payload.hora}`
-      // });
       return savedAsistencia;
     }
 
@@ -167,18 +176,21 @@ export class AsistenciaService {
     if (existe.hora_salida) {
       throw new BadRequestException('Ya has registrado tu salida para este horario');
     }
-    const estadosSalidaPermitidos = ['salida', 'fuera_de_zona'];
-    if (!estadosSalidaPermitidos.includes(estado)) {
-      throw new BadRequestException('Solo puedes registrar la salida en este momento');
-    }
-    // Eliminar la restricción de tolerancia para salida: permitir marcar salida aunque se pase del tiempo de tolerancia
-    // Calcular tiempo total
+
+    // Permitir marcar salida en cualquier momento después de la entrada
     const horaEntrada = new Date(`${payload.fecha}T${existe.hora}`);
     const horaSalida = new Date(`${payload.fecha}T${payload.hora}`);
+    
+    if (horaSalida < horaEntrada) {
+      throw new BadRequestException('La hora de salida no puede ser anterior a la hora de entrada');
+    }
+
+    // Calcular tiempo total
     const tiempoTotal = horaSalida.getTime() - horaEntrada.getTime();
     const horas = Math.floor(tiempoTotal / (1000 * 60 * 60));
     const minutos = Math.floor((tiempoTotal % (1000 * 60 * 60)) / (1000 * 60));
     const tiempoTotalStr = `${horas}:${minutos.toString().padStart(2, '0')}:00`;
+
     existe.hora_salida = payload.hora;
     existe.lat_salida = payload.lat;
     existe.lng_salida = payload.lng;
@@ -186,10 +198,6 @@ export class AsistenciaService {
     existe.motivo_salida = motivo;
     existe.tiempo_total = tiempoTotalStr;
     const savedAsistencia = await this.repository.save(existe);
-    // await this.notificacionRepository.save({
-    //   userId: payload.userId,
-    //   mensaje: `✅ Asistencia registrada con éxito a las ${payload.hora}`
-    // });
     return savedAsistencia;
   }
   
@@ -365,7 +373,14 @@ export class AsistenciaService {
     // Buscar todos los horarios asignados para hoy
     const horarios = await this.horarioRepository.find({ where: { userId } });
     const diaSemana = fechaActual.getDay() === 0 ? 7 : fechaActual.getDay();
-    const horariosHoy = horarios.filter(h => h.dias.includes(diaSemana));
+    const horariosHoy = horarios.filter(h => {
+      const inicioYMD = h.fechaInicio ? fechaToYMD(new Date(h.fechaInicio)) : null;
+      let finRepeticionYMD = h.fechaFinRepeticion ? fechaToYMD(new Date(h.fechaFinRepeticion)) : null;
+      // Si no tiene fecha de fin de repetición, se toma igual a la fecha de inicio
+      if (!finRepeticionYMD && inicioYMD) finRepeticionYMD = inicioYMD;
+      const enRango = (!inicioYMD || fechaHoy >= inicioYMD) && (!finRepeticionYMD || fechaHoy <= finRepeticionYMD);
+      return h.dias.includes(diaSemana) && enRango;
+    });
 
     // Buscar asistencias de hoy
     const asistenciasHoy = await this.repository.find({
@@ -416,52 +431,69 @@ export class AsistenciaService {
       order: { fecha: 'ASC', hora: 'ASC' },
     });
     const fechasAsistidas = new Set(asistenciasMes.map(a => a.fecha + '|' + a.horarioId));
-    const diasHabiles: { fecha: string, horario: any }[] = [];
-    const hoy = new Date();
-    const hoyYMD = fechaToYMD(hoy);
-    const horaActual = hoy.toTimeString().slice(0, 5);
-    for (let d = 1; d <= ultimoDiaMes; d++) {
-      const mesIndex = Number(mm) - 1;
-      const fecha = new Date(Number(yyyy), mesIndex, d);
-      const fechaYMD = fechaToYMD(fecha);
-      const diaSemana = fecha.getDay() === 0 ? 7 : fecha.getDay();
-      for (const horario of horarios) {
-        const inicioYMD = horario.fechaInicio ? fechaToYMD(new Date(horario.fechaInicio)) : null;
-        const finRepeticionYMD = horario.fechaFinRepeticion ? fechaToYMD(new Date(horario.fechaFinRepeticion)) : null;
-        if (typeof horario.dias === 'string' && horario.dias) {
-          const diasArray = (horario.dias as string).split(',').map(d => Number(d.trim())).filter(n => !isNaN(n));
-          const enRango = (!inicioYMD || fechaYMD >= inicioYMD) && (!finRepeticionYMD || fechaYMD <= finRepeticionYMD);
-          if (diasArray.includes(diaSemana) && enRango) {
-            diasHabiles.push({ fecha: fechaYMD, horario });
-            break;
-          }
-        } else if (Array.isArray(horario.dias)) {
-          const enRango = (!inicioYMD || fechaYMD >= inicioYMD) && (!finRepeticionYMD || fechaYMD <= finRepeticionYMD);
-          if (horario.dias.includes(diaSemana) && enRango) {
-            diasHabiles.push({ fecha: fechaYMD, horario });
-            break;
+    let diasHabiles: { fecha: string, horario: any }[] = [];
+    let faltasCount = 0;
+    if (horarios.length > 0) {
+      diasHabiles = [];
+      for (let d = 1; d <= ultimoDiaMes; d++) {
+        const mesIndex = Number(mm) - 1;
+        const fecha = new Date(Number(yyyy), mesIndex, d);
+        const fechaYMD = fechaToYMD(fecha);
+        const diaSemana = fecha.getDay() === 0 ? 7 : fecha.getDay();
+        for (const horario of horarios) {
+          const inicioYMD = horario.fechaInicio ? fechaToYMD(new Date(horario.fechaInicio)) : null;
+          let finRepeticionYMD = horario.fechaFinRepeticion ? fechaToYMD(new Date(horario.fechaFinRepeticion)) : null;
+          if (!finRepeticionYMD && inicioYMD) finRepeticionYMD = inicioYMD;
+          if (typeof horario.dias === 'string' && horario.dias) {
+            const diasArray = (horario.dias as string).split(',').map(d => Number(d.trim())).filter(n => !isNaN(n));
+            const enRango = (!inicioYMD || fechaYMD >= inicioYMD) && (!finRepeticionYMD || fechaYMD <= finRepeticionYMD);
+            if (diasArray.includes(diaSemana) && enRango) {
+              diasHabiles.push({ fecha: fechaYMD, horario });
+              break;
+            }
+          } else if (Array.isArray(horario.dias)) {
+            const enRango = (!inicioYMD || fechaYMD >= inicioYMD) && (!finRepeticionYMD || fechaYMD <= finRepeticionYMD);
+            if (horario.dias.includes(diaSemana) && enRango) {
+              diasHabiles.push({ fecha: fechaYMD, horario });
+              break;
+            }
           }
         }
       }
+      // Solo calcula faltas si hay días hábiles
+      const fechasAsistidas = new Set(asistenciasMes.map(a => a.fecha + '|' + a.horarioId));
+      const hoy = new Date();
+      const hoyYMD = fechaToYMD(hoy);
+      const horaActual = hoy.toTimeString().slice(0, 5);
+      const faltas = diasHabiles.filter(({ fecha, horario }) => {
+        const key = fecha + '|' + horario.id;
+        if (fechasAsistidas.has(key)) return false;
+        if (fecha < hoyYMD) return true;
+        if (fecha === hoyYMD) {
+          // Si la hora de fin ya pasó
+          return horario.horaFin < horaActual;
+        }
+        return false;
+      });
+      faltasCount = faltas.length;
     }
-    // Solo contar como falta los días hábiles anteriores a hoy, o si es hoy y la hora de fin ya pasó
-    const faltas = diasHabiles.filter(({ fecha, horario }) => {
-      const key = fecha + '|' + horario.id;
-      if (fechasAsistidas.has(key)) return false;
-      if (fecha < hoyYMD) return true;
-      if (fecha === hoyYMD) {
-        // Si la hora de fin ya pasó
-        return horario.horaFin < horaActual;
-      }
-      return false;
-    });
     const atrasos = asistenciasMes.filter(a => a.estado === 'atraso' || a.estado_salida === 'atraso').length;
+
+    // Cambiar lógica: días laborados por día calendario
+    const fechasLaboradas = new Set();
+    for (const a of asistenciasMes) {
+      const horario = horarios.find(h => h.id === a.horarioId);
+      if (horario) {
+        fechasLaboradas.add(a.fecha);
+      }
+    }
+    const diasLaborados = fechasLaboradas.size;
 
     return {
       mes: mm,
       anio: yyyy,
-      dias_laborados: fechasAsistidas.size,
-      faltas_sin_justificacion: faltas.length,
+      dias_laborados: diasLaborados,
+      faltas_sin_justificacion: faltasCount,
       atrasos: atrasos,
       registro_hoy,
     };
@@ -505,19 +537,20 @@ export class AsistenciaService {
       const mesIndex = Number(mm) - 1;
       const fecha = new Date(Number(yyyy), mesIndex, d);
       const fechaYMD = fechaToYMD(fecha);
-      // Validar que la fecha generada corresponde exactamente al mes y año seleccionados
       if (fecha.getFullYear() !== Number(yyyy) || fecha.getMonth() !== mesIndex) continue;
       const diaSemana = fecha.getDay() === 0 ? 7 : fecha.getDay();
       // Filtrar horarios válidos para este día (solo si el horario está activo en este día exacto)
       const horariosDelDia = horariosFiltrados.filter(horario => {
         const inicioYMD = horario.fechaInicio ? fechaToYMD(new Date(horario.fechaInicio)) : null;
-        const finRepeticionYMD = horario.fechaFinRepeticion ? fechaToYMD(new Date(horario.fechaFinRepeticion)) : null;
+        let finRepeticionYMD = horario.fechaFinRepeticion ? fechaToYMD(new Date(horario.fechaFinRepeticion)) : null;
+        if (!finRepeticionYMD && inicioYMD) finRepeticionYMD = inicioYMD;
         const enRango = (!inicioYMD || fechaYMD >= inicioYMD) && (!finRepeticionYMD || fechaYMD <= finRepeticionYMD);
         const diasHorario = Array.isArray(horario.dias) ? horario.dias.map(Number) : [];
         return enRango && diasHorario.includes(diaSemana);
       });
       if (horariosDelDia.length === 0) continue;
       for (const horario of horariosDelDia) {
+        // Solo mostrar asistencias que correspondan a un horario asignado
         const asistenciasDeEseHorario = asistencias.filter(a => a.fecha === fechaYMD && a.horarioId === horario.id);
         let asistencia: any = null;
         if (asistenciasDeEseHorario.length > 0) {
@@ -550,19 +583,30 @@ export class AsistenciaService {
             motivo_salida: asistencia.motivo_salida,
           });
         } else {
+          // Lógica para faltas solo en días pasados
+          const hoy = new Date();
+          const hoyYMD = fechaToYMD(hoy);
+          const estado_entrada = 'Sin marcación';
+          let motivo_entrada = '';
+          const estado_salida = 'Sin marcación';
+          let motivo_salida = '';
+          if (fechaYMD < hoyYMD) {
+            motivo_entrada = 'Falta injustificada';
+            motivo_salida = 'Falta injustificada';
+          }
           historial.push({
             fecha: fechaYMD,
             horario: `${horario.horaInicio} - ${horario.horaFin}`,
             hora_entrada: null,
             lat_entrada: null,
             lng_entrada: null,
-            estado_entrada: 'Sin marcación',
-            motivo_entrada: 'Falta injustificada',
+            estado_entrada,
+            motivo_entrada,
             hora_salida: null,
             lat_salida: null,
             lng_salida: null,
-            estado_salida: 'Sin marcación',
-            motivo_salida: 'Falta injustificada',
+            estado_salida,
+            motivo_salida,
           });
         }
       }

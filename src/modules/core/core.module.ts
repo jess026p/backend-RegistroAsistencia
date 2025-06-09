@@ -27,6 +27,7 @@ import { SiteController } from './controllers/site.controller';
 import { SiteService } from './services/site.service';
 import { AsistenciaController } from './controllers/asistencia.controller';
 import { AsistenciaService } from './services/asistencia.service';
+import { GeocodingController } from './controllers/geocoding.controller';
 
 @Global()
 @Module({
@@ -46,6 +47,7 @@ import { AsistenciaService } from './services/asistencia.service';
     EmployeeController,
     SiteController,
     AsistenciaController,
+    GeocodingController,
   ],
   providers: [
     ...coreProviders,

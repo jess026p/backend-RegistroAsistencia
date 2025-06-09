@@ -13,9 +13,6 @@ import { MulterModule } from '@nestjs/platform-express';
 import { VerifyUserMiddleware } from '@middlewares';
 import { CacheModule } from '@nestjs/cache-manager';
 import { ReportsModule } from "./modules/reports";
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { UserEntity } from '@auth/entities';
-import { AuthRepositoryEnum } from '@shared/enums';
 import { DatabaseModule } from '@database';
 
 @Module({

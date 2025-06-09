@@ -20,13 +20,24 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   }
 
   async validate(payload: PayloadTokenModel): Promise<UserEntity> {
+    console.log('[JWT STRATEGY] Payload recibido:', payload);
     const user = await this.userService.findOne(payload.id);
+    console.log('[JWT STRATEGY] Usuario encontrado:', user);
 
-    if (!user) throw new UnauthorizedException('El Usuario no existe.');
+    if (!user) {
+      console.log('[JWT STRATEGY] Usuario no existe. Lanzando UnauthorizedException.');
+      throw new UnauthorizedException('El Usuario no existe.');
+    }
 
-    if (user.suspendedAt) throw new UnauthorizedException('El usuario está suspendido.');
+    if (user.suspendedAt) {
+      console.log('[JWT STRATEGY] Usuario suspendido. Lanzando UnauthorizedException.');
+      throw new UnauthorizedException('El usuario está suspendido.');
+    }
 
-    if (user.maxAttempts === 0) throw new UnauthorizedException('Ha excedido el número máximo de intentos permitidos');
+    if (user.maxAttempts === 0) {
+      console.log('[JWT STRATEGY] Usuario bloqueado por intentos. Lanzando UnauthorizedException.');
+      throw new UnauthorizedException('Ha excedido el número máximo de intentos permitidos');
+    }
 
     return user;
   }

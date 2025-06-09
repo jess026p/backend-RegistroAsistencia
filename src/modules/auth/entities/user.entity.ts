@@ -175,6 +175,7 @@ export class UserEntity {
   @Column({
     name: 'email',
     type: 'varchar',
+    unique: true,
     comment: 'Correo Electronico',
   })
   email: string;
@@ -269,6 +270,7 @@ export class UserEntity {
   @Column({
     name: 'username',
     type: 'varchar',
+    unique: true,
     comment: 'Nombre de usuario para ingreso al sistema',
   })
   username: string;

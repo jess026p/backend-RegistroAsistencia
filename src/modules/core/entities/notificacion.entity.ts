@@ -13,4 +13,13 @@ export class NotificacionEntity {
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
+
+  @Column({ type: 'date', nullable: true })
+  fecha: string;
+
+  @Column({ type: 'varchar', length: 5, nullable: true })
+  hora: string;
+
+  @Column({ type: 'varchar', default: 'info' })
+  tipo: 'success' | 'error' | 'warning' | 'info';
 } 

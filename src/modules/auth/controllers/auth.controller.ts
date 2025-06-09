@@ -41,14 +41,8 @@ export class AuthController {
   @PublicRoute()
   @Post('login')
   @HttpCode(HttpStatus.CREATED)
-  async login(@Body() payload: LoginDto): Promise<ResponseHttpModel> {
-    const serviceResponse = await this.authService.login(payload);
-
-    return {
-      data: serviceResponse.data,
-      message: 'Correct Access',
-      title: 'Welcome',
-    };
+  async login(@Body() payload: LoginDto) {
+    return await this.authService.login(payload);
   }
 
   @ApiOperation({ summary: 'Change Password' })
@@ -67,7 +61,8 @@ export class AuthController {
   @ApiOperation({ summary: 'Change Password' })
   @Put(':id/change-password-first')
   @HttpCode(HttpStatus.CREATED)
-  async changePasswordFirst(@Param('id', ParseUUIDPipe) id: string, @Body() payload: PasswordChangeFirstDto): Promise<ResponseHttpModel> {
+  async changePasswordFirst(@Param('id', ParseUUIDPipe) id: string, @Body() payload: PasswordChangeFirstDto, @User() user: UserEntity) {
+    console.log('[CONTROLADOR] Cambio de contraseña primer login. id param:', id, 'user.id:', user.id, 'user.username:', user.username);
     const serviceResponse = await this.authService.changePasswordFirst(id, payload);
 
     return {

@@ -10,20 +10,25 @@ export interface Response<T> {
 @Injectable()
 export class ResponseHttpInterceptor<T> implements NestInterceptor<T, Response<T>> {
   intercept(context: ExecutionContext, next: CallHandler): Observable<Response<T>> {
+    const request = context.switchToHttp().getRequest();
+    const url = request.url;
+
     if (environments.serviceUnavailable) {
       throw new ServiceUnavailableException();
     }
 
+    if (url.includes('auth/login')) {
+      return next.handle();
+    }
+
     return next.handle().pipe(
-      map(response => {
-        return {
-          data: response.data,
-          pagination: response.pagination,
-          message: response.message,
-          title: response.title,
-          version: environments.appVersion,
-        };
-      }),
+      map(response => ({
+        data: response?.data ?? response,
+        pagination: response?.pagination,
+        message: response?.message,
+        title: response?.title,
+        version: environments.appVersion,
+      })),
     );
   }
 }

@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { AsistenciaService } from '../services/asistencia.service';
 import { CreateAsistenciaDto, ResumenAsistenciaDto } from '../dto/asistencia.dto';
+import { getDireccionReverseGeocoding } from '../services/asistencia.service';
 
 @Controller('asistencias')
 export class AsistenciaController {

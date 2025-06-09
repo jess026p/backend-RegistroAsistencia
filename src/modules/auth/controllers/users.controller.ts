@@ -176,4 +176,18 @@ export class UsersController {
       title: 'Deshabilitado',
     };
   }
+
+  @Get('check-email/:email')
+  @HttpCode(HttpStatus.OK)
+  async checkEmail(@Param('email') email: string) {
+    const exists = await this.usersService.emailExists(email);
+    return { data: { exists }, message: '', title: '' };
+  }
+
+  @Get('check-username/:username')
+  @HttpCode(HttpStatus.OK)
+  async checkUsername(@Param('username') username: string) {
+    const exists = await this.usersService.usernameExists(username);
+    return { data: { exists }, message: '', title: '' };
+  }
 }

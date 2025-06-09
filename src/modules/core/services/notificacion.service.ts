@@ -16,8 +16,10 @@ export class NotificacionService {
       order: { createdAt: 'DESC' },
     });
     return notificaciones.map(n => ({
-      fecha: n.createdAt.toISOString().replace('T', ' ').slice(0, 16),
+      fecha: n.fecha,
+      hora: n.hora,
       mensaje: n.mensaje,
+      tipo: n.tipo,
     }));
   }
 } 

@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { FindOptionsWhere, ILike, LessThan, Repository, In } from 'typeorm';
 import { CreateUserDto, FilterUserDto, ReadUserDto, UpdateUserDto } from '@auth/dto';
@@ -41,6 +41,18 @@ export class UsersService {
       const role = await this.roleRepository.findOne({ where: { id: payload.role_id } });
       if (!role) throw new NotFoundException('Rol no encontrado');
       newUser.roles = [role];
+    }
+
+    // Validar si el username ya existe
+    const existeUsername = await this.repository.findOne({ where: { username: payload.username } });
+    if (existeUsername) {
+      throw new BadRequestException('El nombre de usuario ya existe');
+    }
+
+    // Validar si el email ya existe
+    const existeEmail = await this.repository.findOne({ where: { email: payload.email } });
+    if (existeEmail) {
+      throw new BadRequestException('El correo electrónico ya existe');
     }
 
     console.log('Usuario a guardar (create):', newUser);
@@ -278,5 +290,15 @@ export class UsersService {
     if (!user) throw new NotFoundException('Usuario no encontrado');
     user.enabled = false;
     return await this.repository.save(user);
+  }
+
+  async emailExists(email: string): Promise<boolean> {
+    const user = await this.repository.findOne({ where: { email: email.toLowerCase().trim() } });
+    return !!user;
+  }
+
+  async usernameExists(username: string): Promise<boolean> {
+    const user = await this.repository.findOne({ where: { username: username.trim() } });
+    return !!user;
   }
 }
