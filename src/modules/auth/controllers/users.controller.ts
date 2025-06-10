@@ -190,4 +190,18 @@ export class UsersController {
     const exists = await this.usersService.usernameExists(username);
     return { data: { exists }, message: '', title: '' };
   }
+
+  @Patch(':id/aceptar-terminos')
+  async aceptarTerminos(@Param('id', ParseUUIDPipe) id: string) {
+    const fecha = new Date();
+    const serviceResponse = await this.usersService.update(id, {
+      terminosAceptados: true,
+      fechaAceptacionTerminos: fecha,
+    });
+    return {
+      data: serviceResponse,
+      message: 'Términos y condiciones aceptados',
+      title: 'Aceptación de Términos',
+    };
+  }
 }

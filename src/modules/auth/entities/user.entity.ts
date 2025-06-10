@@ -283,6 +283,12 @@ export class UserEntity {
   })
   enabled: boolean;
 
+  @Column({ name: 'terminos_aceptados', type: 'boolean', default: false })
+  terminosAceptados: boolean;
+
+  @Column({ name: 'fecha_aceptacion_terminos', type: 'timestamp', nullable: true })
+  fechaAceptacionTerminos: Date;
+
   /** Before Actions **/
   @BeforeInsert()
   @BeforeUpdate()

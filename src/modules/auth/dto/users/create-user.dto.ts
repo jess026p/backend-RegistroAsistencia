@@ -1,6 +1,6 @@
 import { PickType } from '@nestjs/swagger';
 import { UserDto } from '@auth/dto';
-import { IsUUID, IsOptional } from 'class-validator';
+import { IsUUID, IsOptional, IsBoolean } from 'class-validator';
 
 export class CreateUserDto extends PickType(UserDto, [
   'bloodType',
@@ -26,4 +26,11 @@ export class CreateUserDto extends PickType(UserDto, [
   @IsOptional()
   @IsUUID()
   role_id?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  terminosAceptados?: boolean;
+
+  @IsOptional()
+  fechaAceptacionTerminos?: Date;
 }

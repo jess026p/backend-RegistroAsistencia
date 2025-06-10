@@ -430,7 +430,7 @@ export class AsistenciaService {
       where: { userId, fecha: Between(primerDiaMes, ultimoDia) },
       order: { fecha: 'ASC', hora: 'ASC' },
     });
-    const fechasAsistidas = new Set(asistenciasMes.map(a => a.fecha + '|' + a.horarioId));
+   // const fechasAsistidas = new Set(asistenciasMes.map(a => a.fecha + '|' + a.horarioId));
     let diasHabiles: { fecha: string, horario: any }[] = [];
     let faltasCount = 0;
     if (horarios.length > 0) {

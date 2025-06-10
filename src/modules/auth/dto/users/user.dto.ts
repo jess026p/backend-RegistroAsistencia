@@ -88,4 +88,11 @@ export class UserDto {
   @MinLength(5, minLengthValidationOptions())
   @MaxLength(100, maxLengthValidationOptions())
   readonly username: string;
+
+  @IsOptional()
+  @IsBoolean()
+  readonly terminosAceptados?: boolean;
+
+  @IsOptional()
+  readonly fechaAceptacionTerminos?: Date;
 }
