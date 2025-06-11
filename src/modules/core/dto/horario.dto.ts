@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString, IsUUID, IsArray, IsInt, IsBoolean, IsOptional, IsDate, IsNumber, Min, Max, ArrayMinSize, ArrayMaxSize } from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, IsArray, IsInt,IsOptional, IsNumber, Min, Max, ArrayMinSize, ArrayMaxSize } from 'class-validator';
 
 export class CreateHorarioDto {
   @IsNotEmpty()
@@ -30,9 +30,6 @@ export class CreateHorarioDto {
   @IsString()
   fechaInicio?: string;
 
-  @IsOptional()
-  @IsString()
-  // fechaFin?: string; // Eliminar este campo porque no existe en la base de datos
 
   @IsOptional()
   @IsInt()
@@ -46,15 +43,13 @@ export class CreateHorarioDto {
   @Max(60)
   toleranciaInicioDespues?: number;
 
+  
+
   @IsOptional()
   @IsInt()
   @Min(0)
   @Max(60)
   atrasoPermitido?: number;
-
-  @IsOptional()
-  @IsBoolean()
-  repetirTurno?: boolean;
 
   @IsOptional()
   @IsString()
