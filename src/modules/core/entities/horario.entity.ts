@@ -65,14 +65,6 @@ export class HorarioEntity {
   fechaInicio: string;
 
   @Column({
-    name: 'fecha_fin',
-    type: 'date',
-    nullable: true,
-    comment: 'Fecha de fin del horario',
-  })
-  fechaFin: string;
-
-  @Column({
     name: 'tolerancia_inicio_antes',
     type: 'int',
     default: 5,
@@ -89,28 +81,12 @@ export class HorarioEntity {
   toleranciaInicioDespues: number;
 
   @Column({
-    name: 'tolerancia_fin_despues',
-    type: 'int',
-    default: 5,
-    comment: 'Tolerancia en minutos para salida después de la hora',
-  })
-  toleranciaFinDespues: number;
-
-  @Column({
     name: 'atraso_permitido',
     type: 'int',
     default: 5,
     comment: 'Minutos de atraso permitidos',
   })
   atrasoPermitido: number;
-
-  @Column({
-    name: 'repetir_turno',
-    type: 'boolean',
-    default: false,
-    comment: 'Indica si el turno se repite',
-  })
-  repetirTurno: boolean;
 
   @Column({
     name: 'fecha_fin_repeticion',

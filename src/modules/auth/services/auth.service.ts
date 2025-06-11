@@ -126,6 +126,8 @@ export class AuthService {
         avatar: true,
         passwordChanged: true,
         enabled: true,
+        terminosAceptados: true,
+        fechaAceptacionTerminos: true,
       },
       where: {
         username: payload.username,

@@ -169,7 +169,35 @@ export class AsistenciaService {
         motivo,
       });
       const savedAsistencia = await this.repository.save(asistencia);
-      return savedAsistencia;
+      // Mensaje y tipo personalizados
+      let mensaje = '¡Entrada registrada correctamente!';
+      let tipo = 'success';
+      if (estado === 'atraso' && motivo?.toLowerCase().includes('fuera de zona')) {
+        mensaje = '¡Entrada registrada con atraso y fuera de la zona asignada!';
+        tipo = 'warning';
+      } else if (estado === 'atraso') {
+        mensaje = '¡Entrada registrada con atraso!';
+        tipo = 'warning';
+      } else if (estado === 'fuera_de_zona') {
+        mensaje = '¡Entrada registrada fuera de la zona asignada!';
+        tipo = 'warning';
+      }
+      await this.notificacionRepository.save({
+        userId: payload.userId,
+        mensaje,
+        fecha: payload.fecha,
+        hora: payload.hora,
+        createdAt: new Date(),
+        tipo,
+      });
+      // Respuesta para el alert del frontend
+      return {
+        ...savedAsistencia,
+        mensaje,
+        tipo,
+        motivo: savedAsistencia.motivo,
+        estado: savedAsistencia.estado,
+      };
     }
 
     // CASO 2: YA EXISTE REGISTRO, MARCAR SALIDA
@@ -177,20 +205,21 @@ export class AsistenciaService {
       throw new BadRequestException('Ya has registrado tu salida para este horario');
     }
 
-    // Permitir marcar salida en cualquier momento después de la entrada
+    // Permitir marcar salida solo si la hora actual es mayor o igual a la hora de salida programada
     const horaEntrada = new Date(`${payload.fecha}T${existe.hora}`);
     const horaSalida = new Date(`${payload.fecha}T${payload.hora}`);
-    
+    const horaFin = new Date(`${payload.fecha}T${horario.horaFin}`);
     if (horaSalida < horaEntrada) {
       throw new BadRequestException('La hora de salida no puede ser anterior a la hora de entrada');
     }
-
+    if (horaSalida < horaFin) {
+      throw new BadRequestException('No puedes marcar la salida antes de la hora de salida programada');
+    }
     // Calcular tiempo total
     const tiempoTotal = horaSalida.getTime() - horaEntrada.getTime();
     const horas = Math.floor(tiempoTotal / (1000 * 60 * 60));
     const minutos = Math.floor((tiempoTotal % (1000 * 60 * 60)) / (1000 * 60));
     const tiempoTotalStr = `${horas}:${minutos.toString().padStart(2, '0')}:00`;
-
     existe.hora_salida = payload.hora;
     existe.lat_salida = payload.lat;
     existe.lng_salida = payload.lng;
@@ -198,7 +227,37 @@ export class AsistenciaService {
     existe.motivo_salida = motivo;
     existe.tiempo_total = tiempoTotalStr;
     const savedAsistencia = await this.repository.save(existe);
-    return savedAsistencia;
+    // Mensaje y tipo personalizados para salida
+    let mensajeSalida = '¡Salida registrada correctamente!';
+    let tipoSalida = 'success';
+    // Considerar estados como 'salida_fuera_de_zona' y motivos
+    if ((estado && estado.includes('fuera_de_zona')) || (motivo && motivo.toLowerCase().includes('fuera de zona'))) {
+      mensajeSalida = '¡Salida registrada fuera de la zona asignada!';
+      tipoSalida = 'warning';
+    } else if ((estado && estado.includes('atraso')) || (motivo && motivo.toLowerCase().includes('atraso'))) {
+      mensajeSalida = '¡Salida registrada con atraso!';
+      tipoSalida = 'warning';
+    }
+    // Si hay motivo_salida específico, úsalo como mensaje
+    if (motivo) {
+      mensajeSalida = motivo;
+    }
+    await this.notificacionRepository.save({
+      userId: payload.userId,
+      mensaje: mensajeSalida,
+      fecha: payload.fecha,
+      hora: payload.hora,
+      createdAt: new Date(),
+      tipo: tipoSalida,
+    });
+    // Respuesta para el alert del frontend
+    return {
+      ...savedAsistencia,
+      mensaje: mensajeSalida,
+      tipo: tipoSalida,
+      motivo: savedAsistencia.motivo_salida || savedAsistencia.motivo,
+      estado: savedAsistencia.estado_salida || savedAsistencia.estado,
+    };
   }
   
   async buscarUsuarioResumen(termino: string): Promise<any> {
@@ -593,6 +652,15 @@ export class AsistenciaService {
           if (fechaYMD < hoyYMD) {
             motivo_entrada = 'Falta injustificada';
             motivo_salida = 'Falta injustificada';
+            // Notificación automática de falta injustificada
+            await this.notificacionRepository.save({
+              userId,
+              mensaje: `Tienes una falta injustificada el ${fechaYMD}`,
+              fecha: fechaYMD,
+              hora: null,
+              createdAt: new Date(),
+              tipo: 'error',
+            });
           }
           historial.push({
             fecha: fechaYMD,

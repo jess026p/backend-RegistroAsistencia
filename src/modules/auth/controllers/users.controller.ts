@@ -199,7 +199,7 @@ export class UsersController {
       fechaAceptacionTerminos: fecha,
     });
     return {
-      data: serviceResponse,
+      data: plainToInstance(ReadUserDto, serviceResponse),
       message: 'Términos y condiciones aceptados',
       title: 'Aceptación de Términos',
     };

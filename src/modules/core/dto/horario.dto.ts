@@ -32,7 +32,7 @@ export class CreateHorarioDto {
 
   @IsOptional()
   @IsString()
-  fechaFin?: string;
+  // fechaFin?: string; // Eliminar este campo porque no existe en la base de datos
 
   @IsOptional()
   @IsInt()
@@ -45,12 +45,6 @@ export class CreateHorarioDto {
   @Min(0)
   @Max(60)
   toleranciaInicioDespues?: number;
-
-  @IsOptional()
-  @IsInt()
-  @Min(0)
-  @Max(60)
-  toleranciaFinDespues?: number;
 
   @IsOptional()
   @IsInt()

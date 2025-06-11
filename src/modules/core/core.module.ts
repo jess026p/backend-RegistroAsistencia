@@ -28,6 +28,8 @@ import { SiteService } from './services/site.service';
 import { AsistenciaController } from './controllers/asistencia.controller';
 import { AsistenciaService } from './services/asistencia.service';
 import { GeocodingController } from './controllers/geocoding.controller';
+import { NotificacionController } from './controllers/notificacion.controller';
+import { NotificacionService } from './services/notificacion.service';
 
 @Global()
 @Module({
@@ -48,6 +50,7 @@ import { GeocodingController } from './controllers/geocoding.controller';
     SiteController,
     AsistenciaController,
     GeocodingController,
+    NotificacionController,
   ],
   providers: [
     ...coreProviders,
@@ -62,6 +65,7 @@ import { GeocodingController } from './controllers/geocoding.controller';
     EmployeeService,
     SiteService,
     AsistenciaService,
+    NotificacionService,
   ],
   exports: [
     ...coreProviders,
@@ -76,6 +80,7 @@ import { GeocodingController } from './controllers/geocoding.controller';
     EmployeeService,
     SiteService,
     AsistenciaService,
+    NotificacionService,
   ],
 })
 export class CoreModule {}

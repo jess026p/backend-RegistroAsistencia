@@ -21,5 +21,5 @@ export class NotificacionEntity {
   hora: string;
 
   @Column({ type: 'varchar', default: 'info' })
-  tipo: 'success' | 'error' | 'warning' | 'info';
+  tipo: string; // 'success' | 'info' | 'warning' | 'error'
 } 
