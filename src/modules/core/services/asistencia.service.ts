@@ -9,6 +9,25 @@ import { UserEntity } from 'src/modules/auth/entities/user.entity';
 import { ILike } from 'typeorm';
 import axios from 'axios';
 
+// Función helper para verificar si un usuario estaba habilitado en una fecha específica
+function usuarioHabilitadoEnFecha(usuario: any, fechaEvaluar: string): boolean {
+  // Si el usuario está habilitado actualmente, siempre estuvo habilitado
+  if (usuario.enabled) {
+    return true;
+  }
+  
+  // Si el usuario está deshabilitado, verificar cuándo se deshabilitó
+  if (!usuario.enabled && usuario.updatedAt) {
+    const fechaDeshabilitacion = fechaToYMD(new Date(usuario.updatedAt));
+    // Si la fecha de evaluación es anterior a la fecha de deshabilitación, 
+    // el usuario estaba habilitado en esa fecha
+    return fechaEvaluar < fechaDeshabilitacion;
+  }
+  
+  // Si no hay fecha de actualización, asumir que siempre estuvo deshabilitado
+  return false;
+}
+
 function calcularEstadoYMotivoBackend(
   ahora: string,
   horario: HorarioEntity,
@@ -282,18 +301,18 @@ export class AsistenciaService {
         { name: ILike(`%${termino}%`) },
         { lastname: ILike(`%${termino}%`) },
       ],
-      select: ['id', 'name', 'lastname'],
+      select: ['id', 'name', 'lastname', 'enabled', 'updatedAt'],
     });
-  
+
     if (!usuario) throw new NotFoundException('Usuario no encontrado');
-  
+
     const fechaActual = new Date();
     const yyyy = fechaActual.getFullYear();
     const mm = String(fechaActual.getMonth() + 1).padStart(2, '0');
     const dd = String(fechaActual.getDate()).padStart(2, '0');
     const fechaHoy = `${yyyy}-${mm}-${dd}`;
     const primerDiaMes = `${yyyy}-${mm}-01`;
-  
+
     const asistencias = await this.repository.find({
       where: {
         userId: usuario.id,
@@ -301,9 +320,9 @@ export class AsistenciaService {
       },
       order: { fecha: 'ASC', hora: 'ASC' },
     });
-  
+
     const horarios = await this.horarioRepository.find({ where: { userId: usuario.id } });
-  
+
     const diasHabiles: string[] = [];
     const ultimoDiaMes = new Date(Number(yyyy), Number(mm), 0).getDate();
     for (let d = 1; d <= ultimoDiaMes; d++) {
@@ -332,12 +351,16 @@ export class AsistenciaService {
     }
 
     const fechasAsistidas = asistencias.map(a => a.fecha);
-    const faltas = diasHabiles.filter(d => !fechasAsistidas.includes(d));
+    // Solo contar faltas si el usuario estaba habilitado en cada fecha específica
+    const faltas = diasHabiles.filter(d => {
+      if (fechasAsistidas.includes(d)) return false;
+      return usuarioHabilitadoEnFecha(usuario, d);
+    });
     const atrasos = asistencias.filter(a => a.estado === 'atraso').length;
     const diasLaborados = new Set(asistencias.map(a => a.fecha)).size;
-  
+
     const asistenciaHoy = asistencias.find(a => a.fecha === fechaHoy);
-  
+
     const registroHoy = asistenciaHoy ? {
       estado: asistenciaHoy.estado,
       motivo: asistenciaHoy.motivo,
@@ -357,13 +380,14 @@ export class AsistenciaService {
       entrada: null,
       salida: null,
     };
-  
+
     return {
       nombre: `${usuario.name} ${usuario.lastname}`,
       dias_laborados: diasLaborados,
       faltas_sin_justificacion: faltas.length,
       atrasos: atrasos,
       registro_hoy: registroHoy,
+      usuario_habilitado: usuario.enabled,
     };
   }
   
@@ -429,6 +453,16 @@ export class AsistenciaService {
     const dd = String(fechaActual.getDate()).padStart(2, '0');
     const fechaHoy = `${yyyy}-${mm}-${dd}`;
 
+    // Verificar si el usuario está habilitado
+    const usuario = await this.repository.manager.findOne(UserEntity, {
+      where: { id: userId },
+      select: ['id', 'name', 'lastname', 'enabled', 'updatedAt'],
+    });
+
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+
     // Buscar todos los horarios asignados para hoy
     const horarios = await this.horarioRepository.find({ where: { userId } });
     const diaSemana = fechaActual.getDay() === 0 ? 7 : fechaActual.getDay();
@@ -492,6 +526,7 @@ export class AsistenciaService {
    // const fechasAsistidas = new Set(asistenciasMes.map(a => a.fecha + '|' + a.horarioId));
     let diasHabiles: { fecha: string, horario: any }[] = [];
     let faltasCount = 0;
+    
     if (horarios.length > 0) {
       diasHabiles = [];
       for (let d = 1; d <= ultimoDiaMes; d++) {
@@ -527,7 +562,10 @@ export class AsistenciaService {
       const faltas = diasHabiles.filter(({ fecha, horario }) => {
         const key = fecha + '|' + horario.id;
         if (fechasAsistidas.has(key)) return false;
-        if (fecha < hoyYMD) return true;
+        if (fecha < hoyYMD) {
+          // Verificar si el usuario estaba habilitado en esta fecha específica
+          return usuarioHabilitadoEnFecha(usuario, fecha);
+        }
         if (fecha === hoyYMD) {
           // Si la hora de fin ya pasó
           return horario.horaFin < horaActual;
@@ -555,6 +593,7 @@ export class AsistenciaService {
       faltas_sin_justificacion: faltasCount,
       atrasos: atrasos,
       registro_hoy,
+      usuario_habilitado: usuario.enabled,
     };
   }
 
@@ -575,6 +614,16 @@ export class AsistenciaService {
 
     const primerDiaMes = `${yyyy}-${mm}-01`;
     const ultimoDia = `${yyyy}-${mm}-${String(ultimoDiaMes).padStart(2, '0')}`;
+
+    // Verificar si el usuario está habilitado
+    const usuario = await this.repository.manager.findOne(UserEntity, {
+      where: { id: userId },
+      select: ['id', 'name', 'lastname', 'enabled', 'updatedAt'],
+    });
+
+    if (!usuario) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
 
     // Obtener horarios que estén activos en el mes seleccionado
     const horarios = await this.horarioRepository.find({ where: { userId } });
@@ -642,17 +691,25 @@ export class AsistenciaService {
             motivo_salida: asistencia.motivo_salida,
           });
         } else {
-          // Lógica para faltas solo en días pasados
+          // Lógica para faltas o usuario deshabilitado en días pasados, hoy o futuros
           const hoy = new Date();
           const hoyYMD = fechaToYMD(hoy);
+          const horaActual = hoy.toTimeString().slice(0, 5);
           const estado_entrada = 'Sin marcación';
           let motivo_entrada = '';
           const estado_salida = 'Sin marcación';
           let motivo_salida = '';
-          if (fechaYMD < hoyYMD) {
+
+          // Verificar si el usuario estaba habilitado en esta fecha específica
+          const usuarioHabilitadoEnEstaFecha = usuarioHabilitadoEnFecha(usuario, fechaYMD);
+
+          if (!usuarioHabilitadoEnEstaFecha) {
+            motivo_entrada = 'Usuario deshabilitado';
+            motivo_salida = 'Usuario deshabilitado';
+          } else if (fechaYMD < hoyYMD) {
             motivo_entrada = 'Falta injustificada';
             motivo_salida = 'Falta injustificada';
-            // Notificación automática de falta injustificada
+            // Notificación automática de falta injustificada solo si el usuario estaba habilitado
             await this.notificacionRepository.save({
               userId,
               mensaje: `Tienes una falta injustificada el ${fechaYMD}`,
@@ -661,7 +718,21 @@ export class AsistenciaService {
               createdAt: new Date(),
               tipo: 'error',
             });
+          } else if (fechaYMD === hoyYMD) {
+            // Si la hora de fin del horario ya pasó y no marcó, es falta injustificada
+            if (horario.horaFin < horaActual) {
+              motivo_entrada = 'Falta injustificada';
+              motivo_salida = 'Falta injustificada';
+            } else {
+              motivo_entrada = '-';
+              motivo_salida = '-';
+            }
+          } else {
+            // Futuro
+            motivo_entrada = usuarioHabilitadoEnEstaFecha ? '-' : 'Usuario deshabilitado';
+            motivo_salida = usuarioHabilitadoEnEstaFecha ? '-' : 'Usuario deshabilitado';
           }
+
           historial.push({
             fecha: fechaYMD,
             horario: `${horario.horaInicio} - ${horario.horaFin}`,
